@@ -1,0 +1,16 @@
+Initial state:
+default state
+
+First jump:
+jump
+pitch 1
+
+Second jump:
+jump
+pitch 1
+
+Cancel flip:
+pitch -1
+
+Roll:
+roll 1 or -1
