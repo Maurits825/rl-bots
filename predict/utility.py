@@ -1,5 +1,6 @@
 import math
 
+G = -650
 
 class Vector3:
     def __init__(self, data):
@@ -18,9 +19,20 @@ class Vector3:
 
 class obj:
     def __init__(self):
-        self.location = Vector3([0, 0, 0])
+        self.pos = Vector3([0, 0, 0])
         self.velocity = Vector3([0, 0, 0])
         self.rotation = Vector3([0, 0, 0])
         self.rvelocity = Vector3([0, 0, 0])
 
-        self.local_location = Vector3([0, 0, 0])
+        self.lpos = Vector3([0, 0, 0])
+
+
+def time_to_ground(ball):
+    u = ball.velocity.data[2]
+    s = ball.pos.data[2] - 93
+    return (-u-math.sqrt(u**2 - 2*G*s))/G
+
+
+def ground_pos(ball):
+    t = time_to_ground(ball)
+    return [ball.velocity.data[0]*t + ball.pos.data[0], ball.velocity.data[1]*t + ball.pos.data[1], 0]
