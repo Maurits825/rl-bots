@@ -1,32 +1,8 @@
-from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
-from rlbot.utils.structures.game_data_struct import GameTickPacket
 import math
 import time
-
-
-class Vector3:
-    def __init__(self, data):
-        self.data = data
-
-    def __sub__(self, value):
-        return Vector3([self.data[0]-value.data[0],
-                        self.data[1]-value.data[1],
-                        self.data[2]-value.data[2]])
-
-    def __mul__(self, value):
-        return (self.data[0]*value.data[0] +
-                self.data[1]*value.data[1] +
-                self.data[2]*value.data[2])
-
-
-class obj:
-    def __init__(self):
-        self.location = Vector3([0, 0, 0])
-        self.velocity = Vector3([0, 0, 0])
-        self.rotation = Vector3([0, 0, 0])
-        self.rvelocity = Vector3([0, 0, 0])
-
-        self.local_location = Vector3([0, 0, 0])
+from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
+from rlbot.utils.structures.game_data_struct import GameTickPacket
+from utility import *
 
 
 class Predict(BaseAgent):
@@ -41,7 +17,7 @@ class Predict(BaseAgent):
 
         # render stuff
         self.renderer.begin_rendering()
-        self.renderer.draw_string_2d(0, 0, 5, 5, 'Hello!',
+        self.renderer.draw_string_2d(0, 0, 5, 5, str(self.ball.location.data[0]),
                                      self.renderer.black())
         self.renderer.end_rendering()
 
