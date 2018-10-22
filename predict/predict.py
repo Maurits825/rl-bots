@@ -47,6 +47,9 @@ class Predict(BaseAgent):
         pre_pos = pos_at_time(ball, 0)
         pre_pos[2] = (ball.velocity.data[2]*0 - 0.5*650*0**2) + ball.pos.data[2]
 
+        pos = pos_at_time(ball, t)
+        self.renderer.draw_rect_3d(pos, 20, 20, True, self.renderer.red())
+
         samples = 15
         for i in range(1, samples+1):
             j = t*i/samples

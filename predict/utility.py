@@ -30,7 +30,12 @@ class obj:
 def time_to_ground(ball):
     u = ball.velocity.data[2]
     s = ball.pos.data[2] - 93
-    return (-u-math.sqrt(u**2 - 2*G*s))/G
+    root = u**2 - 2*G*s
+
+    if root < 0:
+        return 0
+    else:
+        return (-u-math.sqrt(u**2 - 2*G*s))/G
 
 
 def pos_at_time(ball, t):
