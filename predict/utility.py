@@ -33,6 +33,5 @@ def time_to_ground(ball):
     return (-u-math.sqrt(u**2 - 2*G*s))/G
 
 
-def ground_pos(ball):
-    t = time_to_ground(ball)
+def pos_at_time(ball, t):
     return [ball.velocity.data[0]*t + ball.pos.data[0], ball.velocity.data[1]*t + ball.pos.data[1], 0]
