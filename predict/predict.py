@@ -10,19 +10,18 @@ class Predict(BaseAgent):
         super().__init__(name, team, index)
         self.controller = SimpleControllerState()
         self.ball = obj()
-        self.ball_ground_pos = [0, 0, 0]
 
     def get_output(self, packet: GameTickPacket) -> SimpleControllerState:
         # preprocess game data variables
         self.preprocess(packet)
 
         # render stuff
+        t = time_to_ground(self.ball)
         self.renderer.begin_rendering()
-        self.renderer.draw_string_2d(0, 0, 5, 5, str(self.ball.pos.data[2]),
+        self.renderer.draw_string_2d(0, 0, 5, 5, str(t),
                                      self.renderer.black())
         self.draw_curve(self.ball)
         self.renderer.end_rendering()
-
         return self.controller
 
     def preprocess(self, game):
@@ -44,16 +43,16 @@ class Predict(BaseAgent):
 
     def draw_curve(self, ball):
         t = time_to_ground(ball)
-        pre_pos = pos_at_time(ball, 0)
-        pre_pos[2] = (ball.velocity.data[2]*0 - 0.5*650*0**2) + ball.pos.data[2]
+        prev_pos = ball.pos.data
 
-        pos = pos_at_time(ball, t)
-        self.renderer.draw_rect_3d(pos, 20, 20, True, self.renderer.red())
+        ground_pos = pos_at_time(ball, t)
+        self.renderer.draw_rect_3d(ground_pos, 20, 20, True,
+                                   self.renderer.red())
 
-        samples = 15
+        samples = 8
         for i in range(1, samples+1):
             j = t*i/samples
             pos = pos_at_time(ball, j)
-            pos[2] = (ball.velocity.data[2]*j - 0.5*650*j**2) + ball.pos.data[2]
-            self.renderer.draw_line_3d(pre_pos, pos, self.renderer.red())
-            pre_pos = pos
+            pos[2] = (ball.velocity.data[2]*j + 0.5*G*j**2) + ball.pos.data[2]
+            self.renderer.draw_line_3d(prev_pos, pos, self.renderer.red())
+            prev_pos = pos

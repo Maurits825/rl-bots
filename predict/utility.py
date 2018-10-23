@@ -1,6 +1,8 @@
 import math
 
 G = -650
+DRAG = -(3/100)
+BALL_RADIUS = 92.75
 
 class Vector3:
     def __init__(self, data):
@@ -29,14 +31,19 @@ class obj:
 
 def time_to_ground(ball):
     u = ball.velocity.data[2]
-    s = ball.pos.data[2] - 93
+    s = ball.pos.data[2] - BALL_RADIUS
     root = u**2 - 2*G*s
 
     if root < 0:
         return 0
     else:
-        return (-u-math.sqrt(u**2 - 2*G*s))/G
+        return (-u-math.sqrt(root))/G
 
 
 def pos_at_time(ball, t):
-    return [ball.velocity.data[0]*t + ball.pos.data[0], ball.velocity.data[1]*t + ball.pos.data[1], 0]
+    vx = ball.velocity.data[0]
+    vy = ball.velocity.data[1]
+
+    return [(vx*t + 0.5*DRAG*vx*t**2) + ball.pos.data[0],
+            (vy*t + 0.5*DRAG*vx*t**2) + ball.pos.data[1],
+            0]
