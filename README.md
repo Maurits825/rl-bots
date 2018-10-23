@@ -5,3 +5,4 @@
 - fast starts
 - ariel hit
 - power hits
+- predict ball bounce
