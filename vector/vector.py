@@ -32,21 +32,24 @@ class Predict(BaseAgent):
         return self.controller
 
     def preprocess(self, game):
-        self.me.pos.data = [game.game_cars[0].physics.location.x,
-                                 game.game_cars[0].physics.location.y,
-                                 game.game_cars[0].physics.location.z]
-        self.me.velocity.data = [game.game_cars[self.index].physics.velocity.x,
-                                 game.game_cars[self.index].physics.velocity.y,
-                                 game.game_cars[self.index].physics.velocity.z]
-        self.me.rotation.data = [
-            game.game_cars[0].physics.rotation.pitch,
-            game.game_cars[0].physics.rotation.yaw,
-            game.game_cars[0].physics.rotation.roll]
-        self.me.rvelocity.data = [
-            game.game_cars[self.index].physics.angular_velocity.x,
-            game.game_cars[self.index].physics.angular_velocity.y,
-            game.game_cars[self.index].physics.angular_velocity.z]
-        self.me.boost = game.game_cars[self.index].boost
+        index = 0
+        self.me.pos.data = [game.game_cars[index].physics.location.x,
+                            game.game_cars[index].physics.location.y,
+                            game.game_cars[index].physics.location.z]
+
+        self.me.velocity.data = [game.game_cars[index].physics.velocity.x,
+                                 game.game_cars[index].physics.velocity.y,
+                                 game.game_cars[index].physics.velocity.z]
+
+        self.me.rotation.data = [game.game_cars[index].physics.rotation.pitch,
+                                 game.game_cars[index].physics.rotation.yaw,
+                                 game.game_cars[index].physics.rotation.roll]
+
+        self.me.rvel.data = [game.game_cars[index].physics.angular_velocity.x,
+                             game.game_cars[index].physics.angular_velocity.y,
+                             game.game_cars[index].physics.angular_velocity.z]
+
+        self.me.boost = game.game_cars[index.boost]
 
         self.ball.pos.data = [game.game_ball.physics.location.x,
                               game.game_ball.physics.location.y,
