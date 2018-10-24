@@ -6,3 +6,5 @@
 - ariel hit
 - power hits
 - predict ball bounce
+- change vector .data class
+- prediction of car trajectory
