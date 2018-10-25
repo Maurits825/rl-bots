@@ -2,15 +2,15 @@ import math
 import time
 from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
 from rlbot.utils.structures.game_data_struct import GameTickPacket
-from utility import *
+from utility.util import *
 
 
 class Predict(BaseAgent):
     def __init__(self, name, team, index):
         super().__init__(name, team, index)
         self.controller = SimpleControllerState()
-        self.ball = obj()
-        self.me = obj()
+        self.ball = Obj()
+        self.me = Obj()
 
     def get_output(self, packet: GameTickPacket) -> SimpleControllerState:
         # preprocess game data variables
@@ -33,39 +33,39 @@ class Predict(BaseAgent):
 
     def preprocess(self, game):
         index = 0
-        self.me.pos.data = [game.game_cars[index].physics.location.x,
-                            game.game_cars[index].physics.location.y,
-                            game.game_cars[index].physics.location.z]
+        self.me.pos.x = game.game_cars[index].physics.location.x
+        self.me.pos.y = game.game_cars[index].physics.location.y
+        self.me.pos.z = game.game_cars[index].physics.location.z
 
-        self.me.velocity.data = [game.game_cars[index].physics.velocity.x,
-                                 game.game_cars[index].physics.velocity.y,
-                                 game.game_cars[index].physics.velocity.z]
+        self.me.velocity.x = game.game_cars[index].physics.velocity.x
+        self.me.velocity.y = game.game_cars[index].physics.velocity.y
+        self.me.velocity.z = game.game_cars[index].physics.velocity.z
 
-        self.me.rotation.data = [game.game_cars[index].physics.rotation.pitch,
-                                 game.game_cars[index].physics.rotation.yaw,
-                                 game.game_cars[index].physics.rotation.roll]
+        self.me.rotation.x = game.game_cars[index].physics.rotation.pitch
+        self.me.rotation.y = game.game_cars[index].physics.rotation.yaw
+        self.me.rotation.z = game.game_cars[index].physics.rotation.roll
 
-        self.me.rvel.data = [game.game_cars[index].physics.angular_velocity.x,
-                             game.game_cars[index].physics.angular_velocity.y,
-                             game.game_cars[index].physics.angular_velocity.z]
+        self.me.rvel.x = game.game_cars[index].physics.angular_velocity.x
+        self.me.rvel.y = game.game_cars[index].physics.angular_velocity.y
+        self.me.rvel.z = game.game_cars[index].physics.angular_velocity.z
 
-        self.me.boost = game.game_cars[index.boost]
+        self.ball.pos.x = game.game_ball.physics.location.x
+        self.ball.pos.y = game.game_ball.physics.location.y
+        self.ball.pos.z = game.game_ball.physics.location.z
 
-        self.ball.pos.data = [game.game_ball.physics.location.x,
-                              game.game_ball.physics.location.y,
-                              game.game_ball.physics.location.z]
+        self.ball.velocity.x = game.game_ball.physics.velocity.x
+        self.ball.velocity.y = game.game_ball.physics.velocity.y
+        self.ball.velocity.z = game.game_ball.physics.velocity.z
 
-        self.ball.velocity.data = [game.game_ball.physics.velocity.x,
-                                   game.game_ball.physics.velocity.y,
-                                   game.game_ball.physics.velocity.z]
+        self.ball.rotation.x = game.game_ball.physics.rotation.pitch
+        self.ball.rotation.y = game.game_ball.physics.rotation.yaw
+        self.ball.rotation.z = game.game_ball.physics.rotation.roll
 
-        self.ball.rotation.data = [game.game_ball.physics.rotation.pitch,
-                                   game.game_ball.physics.rotation.yaw,
-                                   game.game_ball.physics.rotation.roll]
+        self.ball.rvel.x = game.game_ball.physics.angular_velocity.x
+        self.ball.rvel.y = game.game_ball.physics.angular_velocity.y
+        self.ball.rvel.z = game.game_ball.physics.angular_velocity.z
 
-        self.ball.rvelocity.data = [game.game_ball.physics.angular_velocity.x,
-                                    game.game_ball.physics.angular_velocity.y,
-                                    game.game_ball.physics.angular_velocity.z]
+        self.ball.isBall = True
 
     def draw_curve(self, ball):
         t = time_to_ground(ball)

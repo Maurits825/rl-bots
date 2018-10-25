@@ -2,7 +2,8 @@ import math
 import time
 from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
 from rlbot.utils.structures.game_data_struct import GameTickPacket
-from utility import *
+from utility.util import *
+from utility.predict import *
 
 
 class Predict(BaseAgent):
@@ -11,6 +12,7 @@ class Predict(BaseAgent):
         self.controller = SimpleControllerState()
         self.ball = Obj()
         self.me = Obj()
+        self.get_ball_prediction_struct()
 
     def get_output(self, packet: GameTickPacket) -> SimpleControllerState:
         # preprocess game data variables
