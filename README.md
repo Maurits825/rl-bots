@@ -8,3 +8,5 @@
 - predict ball bounce
 - change vector .data class
 - prediction of car trajectory
+- organize utility folder with utility.py, predict.py?
+- ceiling shuffle
