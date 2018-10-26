@@ -1,0 +1,14 @@
+Pitch:
+-pi/2 to pi/2
+Up = pi/2
+Down = -pi/2
+
+Yaw:
+-pi to pi
+- depending on direction of turn
+
+Roll:
+
+-pi to pi
+
+- depending on direction of turn

@@ -3,6 +3,7 @@ import time
 from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
 from rlbot.utils.structures.game_data_struct import GameTickPacket
 from utility.util import *
+from utility.predict import *
 
 
 class Predict(BaseAgent):
@@ -11,23 +12,36 @@ class Predict(BaseAgent):
         self.controller = SimpleControllerState()
         self.ball = Obj()
         self.me = Obj()
+        self.scale = 700
 
     def get_output(self, packet: GameTickPacket) -> SimpleControllerState:
         # preprocess game data variables
         self.preprocess(packet)
 
         #vector stuff
-        yaw_x = self.me.pos.data[0] + 700*math.cos(self.me.rotation.data[1])
-        yaw_y = self.me.pos.data[1] + 700*math.sin(self.me.rotation.data[1])
+        matrix = rotator_to_matrix(self.me)
+        x_axis = [self.scale*matrix[0].x + self.me.pos.x,
+                  self.scale*matrix[0].y + self.me.pos.y,
+                  self.scale*matrix[0].z + self.me.pos.z]
+
+        y_axis = [self.scale * matrix[1].x + self.me.pos.x,
+                  self.scale * matrix[1].y + self.me.pos.y,
+                  self.scale * matrix[1].z + self.me.pos.z]
+
+        z_axis = [self.scale * matrix[2].x + self.me.pos.x,
+                  self.scale * matrix[2].y + self.me.pos.y,
+                  self.scale * matrix[2].z + self.me.pos.z]
 
         # render stuff
         t = time_to_ground(self.ball)
         self.renderer.begin_rendering()
-        #self.draw_curve(self.ball)
         self.renderer.draw_string_2d(0, 0, 5, 5, 'P: {:0.2f}, Y: {:0.2f}, R: {:0.2f}'
-                                     .format(self.me.rotation.data[0], self.me.rotation.data[1], self.me.rotation.data[2]),
+                                     .format(self.me.rotation.x, self.me.rotation.y, self.me.rotation.z),
                                      self.renderer.black())
-        self.renderer.draw_line_3d(self.me.pos.data, [yaw_x, yaw_y, self.me.pos.data[2]], self.renderer.red())
+
+        self.renderer.draw_line_3d([self.me.pos.x, self.me.pos.y, self.me.pos.z], x_axis, self.renderer.red())
+        self.renderer.draw_line_3d([self.me.pos.x, self.me.pos.y, self.me.pos.z], y_axis, self.renderer.blue())
+        self.renderer.draw_line_3d([self.me.pos.x, self.me.pos.y, self.me.pos.z], z_axis, self.renderer.green())
         self.renderer.end_rendering()
         return self.controller
 
