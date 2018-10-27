@@ -1,5 +1,6 @@
 import math
 
+
 class Vector3:
     def __init__(self, x, y, z):
         self.x = x
@@ -7,13 +8,13 @@ class Vector3:
         self.z = z
 
     def __sub__(self, value):
-        return Vector3([self.x - value.x, self.y - value.y, self.z - value.z])
+        return Vector3(self.x - value.x, self.y - value.y, self.z - value.z)
 
     def __add__(self, value):
-        return Vector3([self.x + value.x, self.y + value.y, self.z + value.z])
+        return Vector3(self.x + value.x, self.y + value.y, self.z + value.z)
 
     def __mul__(self, value):
-        return Vector3([self.x * value.x, self.y * value.y, self.z * value.z])
+        return Vector3(self.x * value.x, self.y * value.y, self.z * value.z)
 
 
 class Obj:
@@ -49,4 +50,20 @@ def to_local(target_pos, our_obj):
     x = (target_pos - our_obj.pos) * our_obj.matrix[0]
     y = (target_pos - our_obj.pos) * our_obj.matrix[1]
     z = (target_pos - our_obj.pos) * our_obj.matrix[2]
-    return [x, y, z]
+    return Vector3(x, y, z)
+
+
+def aim_front(our_obj, target_pos):
+    local_target = to_local(target_pos, our_obj)
+    angle = math.atan2(local_target.y, local_target.x)
+
+    # steering
+    sensitivity = 5
+    if angle < math.radians(-sensitivity):
+        steer = -1
+    elif angle > math.radians(sensitivity):
+        steer = 1
+    else:
+        steer = 0
+
+    return steer
