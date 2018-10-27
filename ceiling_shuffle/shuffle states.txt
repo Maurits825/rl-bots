@@ -1,16 +1,14 @@
-Initial state:
-default state
+Idle state:
+- do nothing
 
-First jump:
-jump
-pitch 1
+Middle:
+- go to the middle
 
-Second jump:
-jump
-pitch 1
+Corner:
+- go to the corner
 
-Cancel flip:
-pitch -1
+Roof:
+- drive up the roof
 
-Roll:
-roll 1 or -1
+Ceiling shuffle
+- start ceiling shuffle
