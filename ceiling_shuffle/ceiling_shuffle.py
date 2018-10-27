@@ -1,6 +1,7 @@
 from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
 from rlbot.utils.structures.game_data_struct import GameTickPacket
 import math
+import time
 from utility.util import *
 from utility.predict import *
 
@@ -18,24 +19,19 @@ class CeilingShuffle(BaseAgent):
         self.current_state = 'Idle'
         self.next_state = 'Idle'
 
+        self.start = 0
+        self.delay = 0.5
+
     def get_output(self, packet: GameTickPacket) -> SimpleControllerState:
         # preprocess game data variables
         self.preprocess(packet)
 
         # ceiling shuffle
         self.ceiling_shuffle()
-        if self.current_state == 'Idle':
-            self.current_state = 'Reset'
 
         #render stuff
         self.renderer.begin_rendering()
         self.renderer.draw_string_2d(0, 0, 5, 5, self.current_state,
-                                     self.renderer.black())
-        self.renderer.draw_string_2d(0, 100, 5, 5, str(self.me.pos.x),
-                                     self.renderer.black())
-        self.renderer.draw_string_2d(0, 200, 5, 5, str(self.me.pos.y),
-                                     self.renderer.black())
-        self.renderer.draw_string_2d(0, 300, 5, 5, str(self.me.pos.z),
                                      self.renderer.black())
         self.renderer.end_rendering()
 
@@ -95,26 +91,58 @@ class CeilingShuffle(BaseAgent):
         elif self.current_state == 'Middle':
             # aim at middle and throttle
             self.controller.steer = aim_front(self.me, Vector3(0, 0, 0))
-            self.controller.throttle = 1
+            self.controller.throttle = 0.8
+            self.controller.jump = 0
+            self.controller.boost = 0
+            self.controller.roll = 0
+            self.controller.pitch = 0
+            self.controller.yaw = 0
 
             # check if at center
             offset = 50
             if (-offset < self.me.pos.x < offset and
                     -offset < self.me.pos.y < offset):
                 self.controller.throttle = -1
-                self.next_state = 'Corner'
+                self.next_state = 'Side'
 
         elif self.current_state == 'Corner':
-            # aim at corner and throttle
-            t_x = 3072
-            t_y = -4096
+            # aim at corner and throttle,
+            t_x = 1792
+            t_y = -4184
             self.controller.steer = aim_front(self.me, Vector3(t_x, t_y, 0))
             self.controller.throttle = 1
 
             # check if at center
-            offset = 50
+            offset = 20
             if ((t_x-offset) < self.me.pos.x < (t_x+offset) and
                     (t_y-offset) < self.me.pos.y < (t_y+offset)):
+                self.controller.throttle = -1
+                self.next_state = 'Corner2'
+
+        elif self.current_state == 'Corner2':
+            # aim at corner and throttle,
+            t_x = 3072
+            t_y = -4096
+            self.controller.steer = aim_front(self.me, Vector3(t_x, t_y, 0))
+            self.controller.throttle = 0.05
+
+            # check if at corner2
+            offset = 40
+            if ((t_x-offset) < self.me.pos.x < (t_x+offset) and
+                    (t_y-offset) < self.me.pos.y < (t_y+offset)):
+                self.controller.throttle = -1
+                self.next_state = 'Roof'
+
+        elif self.current_state == 'Side':
+            t_x = 3584
+            t_y = 0
+            self.controller.steer = aim_front(self.me, Vector3(t_x, t_y, 0))
+            self.controller.throttle = 1
+
+            # check if at target
+            offset = 20
+            if ((t_x - offset) < self.me.pos.x < (t_x + offset) and
+                    (t_y - offset) < self.me.pos.y < (t_y + offset)):
                 self.controller.throttle = -1
                 self.next_state = 'Roof'
 
@@ -123,16 +151,68 @@ class CeilingShuffle(BaseAgent):
             # should be facing correct direction
             self.controller.steer = 0
             self.controller.throttle = 1
+            self.controller.boost = 1
 
-            # check if at roof
-            ceiling_z = 2044
-            offset = 50
-            if self.me.pos.z > ceiling_z - offset:
-                self.controller.throttle = -1
-                self.next_state = 'Middle'
+            # at target height, jump
+            t_z = 800
+            if self.me.pos.z > t_z:
+                self.controller.boost = 0
+                self.controller.jump = 1
+                self.next_state = 'Shuffle_setup1'
+
+        elif self.current_state == 'Shuffle_setup1':
+            self.controller.boost = 1
+            self.controller.jump = 0
+            self.controller.steer = 0
+            self.controller.throttle = 1
+            self.controller.roll = 0
+            self.controller.pitch = 1
+
+            t = 0.8
+            if self.me.rotation.x < t and self.me.rotation.x > -t:
+                self.next_state = 'Shuffle_setup2'
+
+        elif self.current_state == 'Shuffle_setup2':
+            self.controller.boost = 0
+            self.controller.jump = 0
+            self.controller.steer = 0
+            self.controller.throttle = 1
+            self.controller.roll = 1
+            self.controller.pitch = 0
+
+            if self.me.pos.z > 2000:
+                self.next_state = 'Shuffle_start'
+
+        elif self.current_state == 'Shuffle_start':
+            self.controller.boost = 0
+            self.controller.jump = 0
+            self.controller.throttle = 1
+            self.controller.roll = 0
+            self.controller.pitch = 0
+
+            self.controller.steer = -1
+            self.controller.yaw = 0
+            self.next_state = 'Shuffle_right'
+
+        elif self.current_state == 'Shuffle_right':
+            self.controller.steer = 1
+            self.controller.yaw = 0
+
+            if time.time() > self.start + self.delay:
+                self.start = time.time()
+                self.next_state = 'Shuffle_left'
+
+        elif self.current_state == 'Shuffle_left':
+            self.controller.steer = -1
+            self.controller.yaw = 0
+
+            if time.time() > self.start + self.delay:
+                self.start = time.time()
+                self.next_state = 'Shuffle_right'
 
         elif self.current_state == 'Idle':
             self.controller.steer = 0
             self.controller.throttle = 0
+            self.next_state = 'Middle'
 
         self.current_state = self.next_state

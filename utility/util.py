@@ -63,7 +63,7 @@ def aim_front(our_obj, target_pos):
     angle = angle - our_obj.rotation.y
 
     # steering
-    sensitivity = 10
+    sensitivity = 5
     if angle < math.radians(-sensitivity):
         steer = -1
     elif angle > math.radians(sensitivity):
