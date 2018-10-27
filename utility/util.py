@@ -3,9 +3,9 @@ import math
 
 class Vector3:
     def __init__(self, x, y, z):
-        self.x = x
-        self.y = y
-        self.z = z
+        self.x = float(x)
+        self.y = float(y)
+        self.z = float(z)
 
     def __sub__(self, value):
         return Vector3(self.x - value.x, self.y - value.y, self.z - value.z)
@@ -46,19 +46,24 @@ def rotator_to_matrix(obj):
     return matrix
 
 
-def to_local(target_pos, our_obj):
+def to_local(our_obj, target_pos):
     x = (target_pos - our_obj.pos) * our_obj.matrix[0]
     y = (target_pos - our_obj.pos) * our_obj.matrix[1]
     z = (target_pos - our_obj.pos) * our_obj.matrix[2]
-    return Vector3(x, y, z)
+    return [x, y, z]
 
 
 def aim_front(our_obj, target_pos):
-    local_target = to_local(target_pos, our_obj)
-    angle = math.atan2(local_target.y, local_target.x)
+    #local_target = to_local(our_obj, target_pos)
+    #angle = math.atan2(local_target[0].y, local_target[0].x)
+
+    angle = math.atan2(target_pos.y - our_obj.pos.y,
+                       target_pos.x - our_obj.pos.x)
+
+    angle = angle - our_obj.rotation.y
 
     # steering
-    sensitivity = 5
+    sensitivity = 10
     if angle < math.radians(-sensitivity):
         steer = -1
     elif angle > math.radians(sensitivity):
