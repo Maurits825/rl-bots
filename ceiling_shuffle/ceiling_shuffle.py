@@ -15,39 +15,20 @@ class CeilingShuffle(BaseAgent):
         # Contants
         self.DODGE_TIME = 0.2
 
-        self.current_state = 'N'
-        self.next_state = 'N'
-        self.jump_start = 0
-
-    def aim(self, target_x, target_y):
-        angle_between_bot_and_target = math.atan2(target_y - self.bot_pos.y,
-                                                target_x - self.bot_pos.x)
-
-        angle_front_to_target = angle_between_bot_and_target - self.bot_yaw
-
-        # Correct the values
-        if angle_front_to_target < -math.pi:
-            angle_front_to_target += 2 * math.pi
-        if angle_front_to_target > math.pi:
-            angle_front_to_target -= 2 * math.pi
-
-        if angle_front_to_target < math.radians(-10):
-            # If the target is more than 10 degrees right from the centre, steer left
-            self.controller.steer = -1
-        elif angle_front_to_target > math.radians(10):
-            # If the target is more than 10 degrees left from the centre, steer right
-            self.controller.steer = 1
-        else:
-            # If the target is less than 10 degrees from the centre, steer straight
-            self.controller.steer = 0
+        self.current_state = 'Idle'
+        self.next_state = 'Idle'
 
     def get_output(self, packet: GameTickPacket) -> SimpleControllerState:
         # preprocess game data variables
         self.preprocess(packet)
 
+        # ceiling shuffle
+        self.ceiling_shuffle()
+
         #render stuff
         self.renderer.begin_rendering()
-        self.renderer.draw_string_2d(0, 0, 5, 5, self.current_state, self.renderer.black())
+        self.renderer.draw_string_2d(0, 0, 5, 5, self.current_state,
+                                     self.renderer.black())
         self.renderer.end_rendering()
 
         return self.controller
@@ -86,4 +67,27 @@ class CeilingShuffle(BaseAgent):
         self.ball.rvel.y = game.game_ball.physics.angular_velocity.y
         self.ball.rvel.z = game.game_ball.physics.angular_velocity.z
 
+        self.me.matrix = rotator_to_matrix(self.me)
+
         self.ball.isBall = True
+
+    def ceiling_shuffle(self):
+        if self.current_state == 'Middle':
+            # aim at middle and throttle
+            self.controller.steer = (self.me, Vector3(0, 0, 0))
+            self.controller.throttle = 1
+
+            # check if at center
+            offset = 50
+            if (-offset < self.me.pos.x < offset and
+                    -offset < self.me.pos.y < offset):
+                self.next_state = 'Corner'
+
+        elif self.current_state == 'Corner':
+            # go corner
+            pass
+        elif self.current_state == 'Roof':
+            # go to roof
+            pass
+
+        self.current_state = self.next_state
