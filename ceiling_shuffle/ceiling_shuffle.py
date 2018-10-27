@@ -1,48 +1,55 @@
-import math
-import time
 from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
 from rlbot.utils.structures.game_data_struct import GameTickPacket
+import math
 from utility.util import *
 from utility.predict import *
 
 
-class Vector(BaseAgent):
+class CeilingShuffle(BaseAgent):
     def __init__(self, name, team, index):
         super().__init__(name, team, index)
         self.controller = SimpleControllerState()
         self.ball = Obj()
         self.me = Obj()
-        self.scale = 700
+
+        # Contants
+        self.DODGE_TIME = 0.2
+
+        self.current_state = 'N'
+        self.next_state = 'N'
+        self.jump_start = 0
+
+    def aim(self, target_x, target_y):
+        angle_between_bot_and_target = math.atan2(target_y - self.bot_pos.y,
+                                                target_x - self.bot_pos.x)
+
+        angle_front_to_target = angle_between_bot_and_target - self.bot_yaw
+
+        # Correct the values
+        if angle_front_to_target < -math.pi:
+            angle_front_to_target += 2 * math.pi
+        if angle_front_to_target > math.pi:
+            angle_front_to_target -= 2 * math.pi
+
+        if angle_front_to_target < math.radians(-10):
+            # If the target is more than 10 degrees right from the centre, steer left
+            self.controller.steer = -1
+        elif angle_front_to_target > math.radians(10):
+            # If the target is more than 10 degrees left from the centre, steer right
+            self.controller.steer = 1
+        else:
+            # If the target is less than 10 degrees from the centre, steer straight
+            self.controller.steer = 0
 
     def get_output(self, packet: GameTickPacket) -> SimpleControllerState:
         # preprocess game data variables
         self.preprocess(packet)
 
-        #vector stuff
-        matrix = rotator_to_matrix(self.me)
-        x_axis = [self.scale*matrix[0].x + self.me.pos.x,
-                  self.scale*matrix[0].y + self.me.pos.y,
-                  self.scale*matrix[0].z + self.me.pos.z]
-
-        y_axis = [self.scale * matrix[1].x + self.me.pos.x,
-                  self.scale * matrix[1].y + self.me.pos.y,
-                  self.scale * matrix[1].z + self.me.pos.z]
-
-        z_axis = [self.scale * matrix[2].x + self.me.pos.x,
-                  self.scale * matrix[2].y + self.me.pos.y,
-                  self.scale * matrix[2].z + self.me.pos.z]
-
-        # render stuff
-        t = time_to_ground(self.ball)
+        #render stuff
         self.renderer.begin_rendering()
-        self.renderer.draw_string_2d(0, 0, 5, 5, 'P: {:0.2f}, Y: {:0.2f}, R: {:0.2f}'
-                                     .format(self.me.rotation.x, self.me.rotation.y, self.me.rotation.z),
-                                     self.renderer.black())
-
-        self.renderer.draw_line_3d([self.me.pos.x, self.me.pos.y, self.me.pos.z], x_axis, self.renderer.red())
-        self.renderer.draw_line_3d([self.me.pos.x, self.me.pos.y, self.me.pos.z], y_axis, self.renderer.blue())
-        self.renderer.draw_line_3d([self.me.pos.x, self.me.pos.y, self.me.pos.z], z_axis, self.renderer.green())
+        self.renderer.draw_string_2d(0, 0, 5, 5, self.current_state, self.renderer.black())
         self.renderer.end_rendering()
+
         return self.controller
 
     def preprocess(self, game):
@@ -80,22 +87,3 @@ class Vector(BaseAgent):
         self.ball.rvel.z = game.game_ball.physics.angular_velocity.z
 
         self.ball.isBall = True
-
-    def draw_curve(self, ball):
-        t = time_to_ground(ball)
-        prev_pos = ball.pos.data
-
-        ground_pos = pos_at_time(ball, t)
-        self.renderer.draw_rect_3d(ground_pos, 20, 20, True,
-                                   self.renderer.red())
-        self.renderer.draw_string_2d(0, 0, 5, 5, 'x: {:0.2f}, y: {:0.2f}'
-                                     .format(ground_pos[0], ground_pos[1]),
-                                     self.renderer.black())
-
-        samples = 8
-        for i in range(1, samples+1):
-            j = t*i/samples
-            pos = pos_at_time(ball, j)
-            pos[2] = (ball.velocity.data[2]*j + 0.5*G*j**2) + ball.pos.data[2]
-            self.renderer.draw_line_3d(prev_pos, pos, self.renderer.red())
-            prev_pos = pos
