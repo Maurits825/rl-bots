@@ -6,6 +6,15 @@ class Vector3:
         self.y = y
         self.z = z
 
+    def __sub__(self, value):
+        return Vector3([self.x - value.x, self.y - value.y, self.z - value.z])
+
+    def __add__(self, value):
+        return Vector3([self.x + value.x, self.y + value.y, self.z + value.z])
+
+    def __mul__(self, value):
+        return Vector3([self.x * value.x, self.y * value.y, self.z * value.z])
+
 
 class Obj:
     def __init__(self):
@@ -34,3 +43,10 @@ def rotator_to_matrix(obj):
     matrix.append(Vector3(-CR*CY*SP - SR*SY, -CR*SY*SP + SR*CY, CP*CR))
 
     return matrix
+
+
+def to_local(target_pos, our_obj):
+    x = (target_pos - our_obj.pos) * our_obj.matrix[0]
+    y = (target_pos - our_obj.pos) * our_obj.matrix[1]
+    z = (target_pos - our_obj.pos) * our_obj.matrix[2]
+    return [x, y, z]
