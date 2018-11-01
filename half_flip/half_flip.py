@@ -3,7 +3,8 @@ from rlbot.utils.structures.game_data_struct import GameTickPacket
 import math
 import time
 from utility.util import *
-from rlbot.utils.game_state_util import GameState
+from rlbot.utils.game_state_util import GameState, CarState, Rotator, Physics
+from rlbot.utils.game_state_util import Vector3 as V3
 
 
 class HalfFlip(BaseAgent):
@@ -13,6 +14,8 @@ class HalfFlip(BaseAgent):
 
         # Contants
         self.DODGE_TIME = 0.2
+        self.timeout = 3
+        self.t = 0
 
         self.me = Obj()
         self.ball = Obj()
@@ -34,6 +37,12 @@ class HalfFlip(BaseAgent):
             self.controller.jump = 0
             self.controller.roll = 0
             self.controller.pitch = 0
+            car_state = CarState(physics=Physics(velocity=V3(0, 0, 0),
+                                                 rotation=Rotator(0, 0, 0),
+                                                 angular_velocity=V3(0, 0, 0),
+                                                 location=V3(0, 0, 16.6)))
+            game_state = GameState(cars={self.index: car_state})
+            self.set_game_state(game_state)
             self.next_state = 'Start'
 
         elif self.current_state == 'Start':
@@ -80,13 +89,15 @@ class HalfFlip(BaseAgent):
         # Update game data variables
         self.preprocess(packet)
 
-        if packet.game.game_cars[0].jumped:
-            self.next_state = 'Reset'
-            self.half_flip()
+        if packet.game_cars[0].jumped and time.time() > self.t+self.timeout:
+            self.t = time.time()
+            self.current_state = 'Reset'
 
+        self.half_flip()
         # render stuff
         self.renderer.begin_rendering()
         self.renderer.draw_string_2d(0, 0, 5, 5, self.current_state, self.renderer.black())
+        #self.renderer.draw_string_2d(0, 0, 5, 5, str(packet.game_cars[0].jumped), self.renderer.black())
         self.renderer.end_rendering()
 
         return self.controller
