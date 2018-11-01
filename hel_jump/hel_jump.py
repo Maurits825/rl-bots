@@ -4,6 +4,8 @@ import math
 import time
 from utility.util import *
 from utility.predict import *
+from rlbot.utils.game_state_util import GameState, CarState, Rotator, Physics
+from rlbot.utils.game_state_util import Vector3 as V3
 
 
 class HelJump(BaseAgent):
@@ -12,6 +14,15 @@ class HelJump(BaseAgent):
         self.controller = SimpleControllerState()
         self.ball = Obj()
         self.me = Obj()
+
+        self.t = 0
+        self.timeout = 3
+
+        self.tR = 0
+        self.timeoutR = 2
+
+        self.second_jump_time = 0
+        self.second_timeout = 2.1
 
         # Contants
         self.DODGE_TIME = 0.2
@@ -27,6 +38,10 @@ class HelJump(BaseAgent):
         self.preprocess(packet)
 
         # hel_jump
+        if packet.game_cars[0].jumped and time.time() > self.t+self.timeout:
+            self.t = time.time()
+            self.current_state = 'Reset'
+
         self.hel_jump()
 
         #render stuff
@@ -89,31 +104,36 @@ class HelJump(BaseAgent):
             self.controller.jump = 0
             self.controller.handbrake = 1
             self.controller.pitch = -0.3
+            #self.controller.boost = 1
 
             if self.me.rotation.x < -math.pi/6:
                 self.next_state = 'WaitJump2'
 
         elif self.current_state == 'WaitJump2':
             self.controller.pitch = 0
+            self.controller.boost = 1
 
-            if self.me.rotation.x > -0.5:
+            if self.me.rotation.x > -0.35:
                 self.next_state = 'Jump2'
 
         elif self.current_state == 'Jump2':
             self.controller.jump = 1
-            #self.controller.boost = 1
 
-            self.start = time.time()
+            self.second_jump_time = time.time()
             self.next_state = 'Boost'
 
         elif self.current_state == 'Boost':
             self.controller.boost = 1
 
+            if self.me.pos.z > 500:
+                self.controller.boost = 0
+
             if self.me.rotation.x < (math.pi/2 - 0.5):
                 self.controller.pitch = 0.2
             else:
                 self.controller.pitch = 0
-            if self.me.pos.z > 1600:
+
+            if time.time() > self.second_jump_time+self.second_timeout:
                 self.next_state = 'SecondJump'
 
         elif self.current_state == 'SecondJump':
@@ -123,34 +143,31 @@ class HelJump(BaseAgent):
 
             self.next_state = 'Idle'
 
-        elif self.current_state == 'Idle':
-            #self.controller.jump = 0
+        elif self.current_state == 'Reset':
+            self.controller.jump = 0
             self.controller.handbrake = 0
             self.controller.pitch = 0
             self.controller.boost = 0
+            car_state = CarState(physics=Physics(velocity=V3(0, 0, 0),
+                                                 rotation=Rotator(0, 0, 0),
+                                                 angular_velocity=V3(0, 0, 0),
+                                                 location=V3(0, 0, 16.6)))
+            game_state = GameState(cars={self.index: car_state})
+            self.set_game_state(game_state)
 
-            if time.time() > self.start + self.delay and self.me.pos.z < 300:
-                self.controller.jump = 0
+            self.tR = time.time()
+            self.next_state = 'Timeout'
+
+        elif self.current_state == 'Timeout':
+
+            if time.time() > self.tR+self.timeoutR:
                 self.next_state = 'Jump'
 
-        elif self.current_state == 'Setup':
-            self.controller.steer = aim_front(self.me, Vector3(0, 0, 0))
-            self.controller.throttle = 0.2
-
-            # check if at target
-            offset = 50
-            if (-offset < self.me.pos.x < offset and
-                    -offset < self.me.pos.y < offset):
-                self.controller.throttle = -0.2
-                self.next_state = 'Brake'
-
-        elif self.current_state == 'Brake':
-            self.controller.steer = 0
-            self.controller.throttle = 0
+        elif self.current_state == 'Idle':
+            self.controller.jump = 0
             self.controller.handbrake = 0
-            offset = 0.0
-
-            if self.me.velocity.x == 0:
-                self.next_state = 'Jump'
+            self.controller.pitch = 0
+            self.controller.boost = 0
+            self.next_state = 'Idle'
 
         self.current_state = self.next_state
