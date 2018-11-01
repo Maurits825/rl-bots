@@ -33,6 +33,9 @@ class SpaceX(BaseAgent):
         self.start = time.time()
         self.delay = 3
 
+        # PID stuff
+        self.prev_pitch_error = math.pi/2
+
     def get_output(self, packet: GameTickPacket) -> SimpleControllerState:
         # preprocess game data variables
         self.preprocess(packet)
@@ -92,12 +95,13 @@ class SpaceX(BaseAgent):
 
     def space_x(self):
         if self.current_state == 'Reset':
+            self.controller.jump = 0
             self.controller.pitch = 0
             self.controller.boost = 0
             car_state = CarState(physics=Physics(velocity=V3(0, 0, 0),
                                                  rotation=Rotator(0, 0, 0),
                                                  angular_velocity=V3(0, 0, 0),
-                                                 location=V3(0, 0, 16.6)))
+                                                 location=V3(0, 0, 17)))
             game_state = GameState(cars={self.index: car_state})
             self.set_game_state(game_state)
 
@@ -109,9 +113,56 @@ class SpaceX(BaseAgent):
             if time.time() > self.tR+self.timeoutR:
                 self.next_state = 'Jump'
 
+        elif self.current_state == 'Jump':
+            self.sas()
+            self.controller.jump = 1
+
+            if self.me.rotation.x > (math.pi/2 - 0.05):
+                self.next_state = 'Boost'
+
+        elif self.current_state == 'Boost':
+            self.sas()
+            self.controller.boost = 1
+
+            if self.me.pos.z > 1000:
+                self.next_state = 'Falling'
+
+        elif self.current_state == 'Falling':
+            self.sas()
+            self.controller.boost = 0
+
         elif self.current_state == 'Idle':
+            self.controller.jump = 0
             self.controller.pitch = 0
             self.controller.boost = 0
             self.next_state = 'Idle'
 
         self.current_state = self.next_state
+
+    def sas(self):
+        kp = 0.4
+        kd = 1
+        pitch_error = math.pi / 2 - self.me.rotation.x
+
+        # P and D
+        if abs(self.me.rotation.y) > math.pi/2:
+            p = kp * -pitch_error
+            d = kd * (-pitch_error - self.prev_pitch_error)
+            self.prev_pitch_error = -pitch_error
+        else:
+            p = kp * pitch_error
+            d = kd * (pitch_error - self.prev_pitch_error)
+            self.prev_pitch_error = pitch_error
+
+        # normalize
+        #p = p/(math.pi/2)
+        #d = d/(math.pi/2)
+
+        pitch = p + d
+
+        if pitch > 1:
+            pitch = 1
+        elif pitch < -1:
+            pitch = -1
+
+        self.controller.pitch = pitch
