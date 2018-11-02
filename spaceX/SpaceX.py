@@ -33,6 +33,9 @@ class SpaceX(BaseAgent):
         self.start = time.time()
         self.delay = 3
 
+        self.launch_time = 0
+        self.time_burn = 0
+
         # PID stuff
         self.prev_pitch_error = math.pi/2
 
@@ -50,6 +53,8 @@ class SpaceX(BaseAgent):
         #render stuff
         self.renderer.begin_rendering()
         self.renderer.draw_string_2d(0, 0, 5, 5, self.current_state,
+                                     self.renderer.black())
+        self.renderer.draw_string_2d(0, 100, 5, 5, str(self.time_burn),
                                      self.renderer.black())
         self.renderer.end_rendering()
 
@@ -125,9 +130,25 @@ class SpaceX(BaseAgent):
             self.controller.boost = 1
 
             if self.me.pos.z > 1000:
+                self.launch_time = time.time()
                 self.next_state = 'Falling'
 
         elif self.current_state == 'Falling':
+            self.sas()
+            self.controller.boost = 0
+            self.time_burn = burn_time(self.me)
+
+            if self.time_burn < 0:
+                self.next_state = 'Suicide_burn'
+
+        elif self.current_state == 'Suicide_burn':
+            self.sas()
+            self.controller.boost = 1
+
+            if self.me.pos.z < CAR_HEIGHT+1:
+                self.next_state = 'Land'
+
+        elif self.current_state == 'Land':
             self.sas()
             self.controller.boost = 0
 
