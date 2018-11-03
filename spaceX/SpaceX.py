@@ -54,10 +54,9 @@ class SpaceX(BaseAgent):
         self.renderer.begin_rendering()
         self.renderer.draw_string_2d(0, 0, 5, 5, self.current_state,
                                      self.renderer.black())
-        self.renderer.draw_string_2d(0, 100, 5, 5, str(self.time_burn),
+        self.renderer.draw_string_2d(0, 100, 5, 5, str(BOOST_ACC),
                                      self.renderer.black())
         self.renderer.end_rendering()
-
         return self.controller
 
     def preprocess(self, game):
@@ -122,7 +121,7 @@ class SpaceX(BaseAgent):
             self.sas()
             self.controller.jump = 1
 
-            if self.me.rotation.x > (math.pi/2 - 0.05):
+            if self.me.rotation.x > (math.pi/2 - 0.1):
                 self.next_state = 'Boost'
 
         elif self.current_state == 'Boost':
@@ -145,7 +144,7 @@ class SpaceX(BaseAgent):
             self.sas()
             self.controller.boost = 1
 
-            if self.me.pos.z < CAR_HEIGHT+1:
+            if self.me.pos.z < 50:
                 self.next_state = 'Land'
 
         elif self.current_state == 'Land':
@@ -161,7 +160,7 @@ class SpaceX(BaseAgent):
         self.current_state = self.next_state
 
     def sas(self):
-        kp = 0.4
+        kp = 0.3
         kd = 1
         pitch_error = math.pi / 2 - self.me.rotation.x
 
