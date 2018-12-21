@@ -45,7 +45,7 @@ def rotator_to_matrix(obj):
 
     return matrix
 
-
+# TODO fix this ...
 def to_local(our_obj, target_pos):
     x = (target_pos - our_obj.pos) * our_obj.matrix[0]
     y = (target_pos - our_obj.pos) * our_obj.matrix[1]

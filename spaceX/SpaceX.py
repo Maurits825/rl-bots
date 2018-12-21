@@ -36,6 +36,8 @@ class SpaceX(BaseAgent):
         self.launch_time = 0
         self.time_burn = 0
 
+        self.land_height = 0
+
         # PID stuff
         self.prev_pitch_error = math.pi/2
 
@@ -54,8 +56,8 @@ class SpaceX(BaseAgent):
         self.renderer.begin_rendering()
         self.renderer.draw_string_2d(0, 0, 5, 5, self.current_state,
                                      self.renderer.black())
-        self.renderer.draw_string_2d(0, 100, 5, 5, str(BOOST_ACC),
-                                     self.renderer.black())
+        #self.renderer.draw_string_2d(0, 100, 5, 5, str(accel),
+         #                            self.renderer.black())
         self.renderer.end_rendering()
         return self.controller
 
@@ -103,14 +105,14 @@ class SpaceX(BaseAgent):
             self.controller.pitch = 0
             self.controller.boost = 0
             car_state = CarState(physics=Physics(velocity=V3(0, 0, 0),
-                                                 rotation=Rotator(0, 0, 0),
+                                                 rotation=Rotator(math.pi/2, 0, 0),
                                                  angular_velocity=V3(0, 0, 0),
-                                                 location=V3(0, 0, 17)))
+                                                 location=V3(0, 0, 50)))
             game_state = GameState(cars={self.index: car_state})
             self.set_game_state(game_state)
 
             self.tR = time.time()
-            self.next_state = 'Timeout'
+            self.next_state = 'Boost'
 
         elif self.current_state == 'Timeout':
 
@@ -121,21 +123,21 @@ class SpaceX(BaseAgent):
             self.sas()
             self.controller.jump = 1
 
-            if self.me.rotation.x > (math.pi/2 - 0.1):
+            if self.me.rotation.x > (math.pi/2 - 0.05):
                 self.next_state = 'Boost'
 
         elif self.current_state == 'Boost':
             self.sas()
             self.controller.boost = 1
 
-            if self.me.pos.z > 1000:
+            if self.me.pos.z > 800:
                 self.launch_time = time.time()
                 self.next_state = 'Falling'
 
         elif self.current_state == 'Falling':
             self.sas()
             self.controller.boost = 0
-            self.time_burn = burn_time(self.me)
+            self.time_burn = burn_time(self.me, self.land_height)
 
             if self.time_burn < 0:
                 self.next_state = 'Suicide_burn'
@@ -144,7 +146,7 @@ class SpaceX(BaseAgent):
             self.sas()
             self.controller.boost = 1
 
-            if self.me.pos.z < 50:
+            if self.me.pos.z < 48+self.land_height:
                 self.next_state = 'Land'
 
         elif self.current_state == 'Land':
@@ -160,9 +162,9 @@ class SpaceX(BaseAgent):
         self.current_state = self.next_state
 
     def sas(self):
-        kp = 0.3
-        kd = 1
-        pitch_error = math.pi / 2 - self.me.rotation.x
+        kp = 0.8
+        kd = 20
+        pitch_error = (math.pi/2) - self.me.rotation.x
 
         # P and D
         if abs(self.me.rotation.y) > math.pi/2:
