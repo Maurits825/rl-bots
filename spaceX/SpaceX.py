@@ -6,6 +6,15 @@ from utility.util import *
 from utility.predict import *
 from rlbot.utils.game_state_util import GameState, CarState, Rotator, Physics
 from rlbot.utils.game_state_util import Vector3 as V3
+from enum import Enum
+
+
+class HoverStates(Enum):
+    idle = 1
+    boost = 2
+    falling = 3
+    stable = 4
+    reset = 5
 
 
 class SpaceX(BaseAgent):
@@ -41,24 +50,32 @@ class SpaceX(BaseAgent):
         # PID stuff
         self.prev_pitch_error = math.pi/2
 
+        # hover height stuff
+        self.hover_state = HoverStates.idle
+        self.hover_next_state = HoverStates.idle
+        self.hover_prev_error = 0
+        self.reset = True
+        self.sas_pos_prev_error = 0
+
+        self.matrix = []
+
     def get_output(self, packet: GameTickPacket) -> SimpleControllerState:
         # preprocess game data variables
         self.preprocess(packet)
+        self.matrix = rotator_to_matrix(self.me)
 
-        # hel_jump
-        if packet.game_cars[0].jumped and time.time() > self.t+self.timeout:
+        if packet.game_cars[1].jumped and time.time() > self.t+self.timeout:
             self.t = time.time()
             self.current_state = 'Reset'
 
-        self.space_x()
+        if packet.game_cars[1].jumped:
+            self.hover_state = HoverStates.reset
+            self.reset = False
 
-        #render stuff
-        self.renderer.begin_rendering()
-        self.renderer.draw_string_2d(0, 0, 5, 5, self.current_state,
-                                     self.renderer.black())
-        #self.renderer.draw_string_2d(0, 100, 5, 5, str(accel),
-         #                            self.renderer.black())
-        self.renderer.end_rendering()
+        self.hover_height(200)
+        #print('Height:' + str(self.me.pos.z))
+        #print(packet.game_cars[1].physics.rotation.yaw)
+        #self.space_x()
         return self.controller
 
     def preprocess(self, game):
@@ -105,14 +122,14 @@ class SpaceX(BaseAgent):
             self.controller.pitch = 0
             self.controller.boost = 0
             car_state = CarState(physics=Physics(velocity=V3(0, 0, 0),
-                                                 rotation=Rotator(math.pi/2, 0, 0),
+                                                 rotation=Rotator((math.pi/2) - 0.5, 0, 0),
                                                  angular_velocity=V3(0, 0, 0),
-                                                 location=V3(0, 0, 50)))
+                                                 location=V3(0, 0, 100)))
             game_state = GameState(cars={self.index: car_state})
             self.set_game_state(game_state)
 
             self.tR = time.time()
-            self.next_state = 'Boost'
+            #self.next_state = 'Boost'
 
         elif self.current_state == 'Timeout':
 
@@ -120,14 +137,14 @@ class SpaceX(BaseAgent):
                 self.next_state = 'Jump'
 
         elif self.current_state == 'Jump':
-            self.sas()
+            self.sas(math.pi/2) # TODO make  math.pi/2 a var?
             self.controller.jump = 1
 
             if self.me.rotation.x > (math.pi/2 - 0.05):
                 self.next_state = 'Boost'
 
         elif self.current_state == 'Boost':
-            self.sas()
+            self.sas(math.pi/2)
             self.controller.boost = 1
 
             if self.me.pos.z > 800:
@@ -135,7 +152,7 @@ class SpaceX(BaseAgent):
                 self.next_state = 'Falling'
 
         elif self.current_state == 'Falling':
-            self.sas()
+            self.sas(math.pi/2)
             self.controller.boost = 0
             self.time_burn = burn_time(self.me, self.land_height)
 
@@ -143,14 +160,14 @@ class SpaceX(BaseAgent):
                 self.next_state = 'Suicide_burn'
 
         elif self.current_state == 'Suicide_burn':
-            self.sas()
+            self.sas(math.pi/2)
             self.controller.boost = 1
 
             if self.me.pos.z < 48+self.land_height:
                 self.next_state = 'Land'
 
         elif self.current_state == 'Land':
-            self.sas()
+            self.sas(math.pi/2)
             self.controller.boost = 0
 
         elif self.current_state == 'Idle':
@@ -161,10 +178,56 @@ class SpaceX(BaseAgent):
 
         self.current_state = self.next_state
 
-    def sas(self):
+    def hover_height(self, target_height):  # TODO add initial setup from ground rather than reset
+        if self.hover_state is HoverStates.idle:
+            self.controller.boost = 0
+            self.hover_next_state = HoverStates.idle
+
+        elif self.hover_state is HoverStates.boost:
+            self.controller.boost = 1
+            #self.sas(math.pi/2)
+            #self.controller.pitch = aim_to_vector(self.matrix, myVector3(0, 0, 1))
+            self.controller.pitch = move_to_pos(self.matrix, self.me, myVector3(0, 0, 0))
+            if burn_to_height(self.me, target_height):
+                self.hover_next_state = HoverStates.boost
+            else:
+                self.controller.boost = 0
+                self.hover_next_state = HoverStates.falling
+
+        elif self.hover_state is HoverStates.falling:
+            if self.me.velocity.z > 0:
+                self.hover_next_state = HoverStates.falling
+            else:
+                self.hover_next_state = HoverStates.stable
+
+        elif self.hover_state is HoverStates.stable:
+            #self.sas_to_pos(0)
+            #self.controller.pitch = aim_to_vector(self.matrix, myVector3(0, 0, 1))
+            self.controller.pitch = move_to_pos(self.matrix, self.me, myVector3(0, 0, 0))
+            self.controller.boost = self.height_controller(target_height)
+        elif self.hover_state is HoverStates.reset:
+            self.controller.jump = 0
+            self.controller.pitch = 0
+            self.controller.boost = 0
+            self.controller.roll = 0
+            self.controller.steer = 0
+            self.controller.throttle = 0
+            self.controller.yaw = 0
+            car_state = CarState(physics=Physics(velocity=V3(0, 0, 0),
+                                                 rotation=Rotator((math.pi/2) + 0, 0, 0),
+                                                 angular_velocity=V3(0, 0, 0),
+                                                 location=V3(500, 0, 100)))
+            game_state = GameState(cars={self.index: car_state})
+            self.set_game_state(game_state)
+            self.hover_next_state = HoverStates.boost
+
+        self.hover_state = self.hover_next_state
+
+    def sas(self, target_angle):  # TODO move to utils?
         kp = 0.8
         kd = 20
-        pitch_error = (math.pi/2) - self.me.rotation.x
+
+        pitch_error = target_angle - self.me.rotation.x
 
         # P and D
         if abs(self.me.rotation.y) > math.pi/2:
@@ -188,3 +251,39 @@ class SpaceX(BaseAgent):
             pitch = -1
 
         self.controller.pitch = pitch
+
+    def sas_to_pos(self, target_pos):  # TODO move to utils?
+        kp = 0.001
+        kd = 0
+        pos_error = -(target_pos - self.me.pos.x)
+
+        # P and D
+        p = kp * pos_error
+        d = kd * (pos_error - self.sas_pos_prev_error)
+        self.sas_pos_prev_error = pos_error
+
+        # normalize
+        #p = p/(math.pi/2)
+        #d = d/(math.pi/2)
+
+        pitch = p + d
+        print(pitch)
+
+        if pitch > 1:
+            pitch = 1
+        elif pitch < -1:
+            pitch = -1
+
+        self.controller.pitch = pitch
+
+    def height_controller(self, target_height):  # TODO move to utils
+        kp = 1.0
+        kd = 20.0
+
+        error = target_height - self.me.pos.z
+
+        boost_adj = (kp * error) + kd * (error - self.hover_prev_error)  # TODO handle diff pd init errors
+
+        self.hover_prev_error = error
+
+        return boost_adj >= 0
