@@ -95,31 +95,57 @@ def aim_front(our_obj, target_pos):
 
 # TODO make this a class? handle init of prev error
 def aim_to_vector(local_matrix, target_vector):  #TODO only implement pitch for now
-    kp = 0.8
-    kd = 20
+    pitch_kp = 0.8
+    pitch_kd = 20
 
-    # error is angle between x-axis and target vector
-    pitch_error = local_matrix[0].angle(target_vector)
+    yaw_kp = 0.8
+    yaw_kd = 20
 
-    # P and D
-    p = kp * pitch_error
-    d = kd * (pitch_error - aim_to_vector.prev_pitch_error)
-    aim_to_vector.prev_pitch_error = pitch_error
+    # error is angle between x-axis (front of car) and target vector
+    angle_error = local_matrix[0].angle(target_vector)
 
-    pitch = p + d
+    local_target = vector_to_local(local_matrix, target_vector)
+    # yaw component, removing z-axis
+    yaw_angle = myVector3(local_matrix[0].x, local_matrix[0].y, 0).angle(myVector3(local_target.x, local_target.y, 0))
+
+    # pitch component, removing y-axis
+    pitch_angle = myVector3(local_matrix[0].x, 0, local_matrix[0].z).angle(myVector3(local_target.x, 0, local_target.z))
+
+    # yaw
+    yaw = (yaw_kp * angle_error) + (yaw_kd * (angle_error - aim_to_vector.prev_yaw_error))
+    aim_to_vector.prev_yaw_error = angle_error
+
+    # pitch
+    pitch = (pitch_kp * angle_error) + (pitch_kd * (angle_error - aim_to_vector.prev_pitch_error))
+    aim_to_vector.prev_pitch_error = angle_error
+
+    #cross_vec = local_matrix[0].cross(target_vector)
+    cross_vec = local_matrix[0].cross(local_target)  # TODO test with pitch
+
+    # inverse yaw if needed TODO test, make better
+    if (cross_vec.z <= 0 and local_matrix[2].z <= 0) or (cross_vec.z >= 0 and local_matrix[2].z >= 0):
+        yaw = yaw
+    else:
+        yaw = -yaw
+
     # inverse pitch if needed
-    cross_vec = local_matrix[0].cross(target_vector)
     if (cross_vec.y <= 0 and local_matrix[1].y <= 0) or (cross_vec.y >= 0 and local_matrix[1].y >= 0):
         pitch = -pitch
+
+    if yaw > 1:
+        yaw = 1
+    elif yaw < -1:
+        yaw = -1
 
     if pitch > 1:
         pitch = 1
     elif pitch < -1:
         pitch = -1
 
-    return pitch
+    return yaw, pitch
 
 
+aim_to_vector.prev_yaw_error = 0
 aim_to_vector.prev_pitch_error = 0
 
 
@@ -137,13 +163,15 @@ def move_to_pos(local_matrix, car, target_pos):  # TODO only implement pitch for
     total_error = p + d
     err_threshold = 50
     if False and abs(total_error) < err_threshold:  # TODO error threshold
-        pitch = aim_to_vector(local_matrix, myVector3(0, 0, 1))
+        yaw, pitch = aim_to_vector(local_matrix, myVector3(0, 0, 1))
     elif total_error < 0:  # TODO threshold for just aim to 0,0,1?
-        pitch = aim_to_vector(local_matrix, myVector3(-1, 0, 2))  # TODO vector target
+        yaw, pitch = aim_to_vector(local_matrix, myVector3(-1, 0, 2))  # TODO vector target
+        print('Right')
     else:
-        pitch = aim_to_vector(local_matrix, myVector3(1, 0, 2))  # TODO vector target
+        yaw, pitch = aim_to_vector(local_matrix, myVector3(1, 0, 2))  # TODO vector target
+        print('Left')
 
-    return pitch
+    return yaw, pitch
 
 
 move_to_pos.sas_pos_prev_error = 0

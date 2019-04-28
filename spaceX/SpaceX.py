@@ -72,7 +72,7 @@ class SpaceX(BaseAgent):
             self.hover_state = HoverStates.reset
             self.reset = False
 
-        self.hover_height(200)
+        self.hover_height(400)
         #print('Height:' + str(self.me.pos.z))
         #print(packet.game_cars[1].physics.rotation.yaw)
         #self.space_x()
@@ -122,7 +122,7 @@ class SpaceX(BaseAgent):
             self.controller.pitch = 0
             self.controller.boost = 0
             car_state = CarState(physics=Physics(velocity=V3(0, 0, 0),
-                                                 rotation=Rotator((math.pi/2) - 0.5, 0, 0),
+                                                 rotation=Rotator((math.pi/2) + 0.5, 0, 0),
                                                  angular_velocity=V3(0, 0, 0),
                                                  location=V3(0, 0, 100)))
             game_state = GameState(cars={self.index: car_state})
@@ -185,9 +185,9 @@ class SpaceX(BaseAgent):
 
         elif self.hover_state is HoverStates.boost:
             self.controller.boost = 1
-            #self.sas(math.pi/2)
             #self.controller.pitch = aim_to_vector(self.matrix, myVector3(0, 0, 1))
-            self.controller.pitch = move_to_pos(self.matrix, self.me, myVector3(0, 0, 0))
+            self.controller.yaw, _ = move_to_pos(self.matrix, self.me, myVector3(0, 0, 0))
+            #self.controller.yaw, _ = aim_to_vector(self.matrix, myVector3(0, 0, 1))
             if burn_to_height(self.me, target_height):
                 self.hover_next_state = HoverStates.boost
             else:
@@ -201,9 +201,9 @@ class SpaceX(BaseAgent):
                 self.hover_next_state = HoverStates.stable
 
         elif self.hover_state is HoverStates.stable:
-            #self.sas_to_pos(0)
             #self.controller.pitch = aim_to_vector(self.matrix, myVector3(0, 0, 1))
-            self.controller.pitch = move_to_pos(self.matrix, self.me, myVector3(0, 0, 0))
+            self.controller.yaw, _ = move_to_pos(self.matrix, self.me, myVector3(0, 0, 0))
+            #self.controller.yaw, _ = aim_to_vector(self.matrix, myVector3(0, 0, 1))
             self.controller.boost = self.height_controller(target_height)
         elif self.hover_state is HoverStates.reset:
             self.controller.jump = 0
@@ -214,9 +214,9 @@ class SpaceX(BaseAgent):
             self.controller.throttle = 0
             self.controller.yaw = 0
             car_state = CarState(physics=Physics(velocity=V3(0, 0, 0),
-                                                 rotation=Rotator((math.pi/2) + 0, 0, 0),
+                                                 rotation=Rotator((math.pi/2) - 0.5, 0, (math.pi/2)),
                                                  angular_velocity=V3(0, 0, 0),
-                                                 location=V3(500, 0, 100)))
+                                                 location=V3(-800, 0, 100)))
             game_state = GameState(cars={self.index: car_state})
             self.set_game_state(game_state)
             self.hover_next_state = HoverStates.boost
