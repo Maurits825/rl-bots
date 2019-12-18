@@ -18,6 +18,7 @@ class Predict(BaseAgent):
         # preprocess game data variables
         self.preprocess(packet)
 
+        print('hello')
         # render stuff
         t = time_to_ground(self.ball)
         self.renderer.begin_rendering()
