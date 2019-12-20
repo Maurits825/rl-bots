@@ -1,62 +1,22 @@
 import math
 
-
-class myVector3:
-    def __init__(self, x, y, z):
-        self.x = float(x)
-        self.y = float(y)
-        self.z = float(z)
-
-    def __sub__(self, vector):
-        return myVector3(self.x - vector.x, self.y - vector.y, self.z - vector.z)
-
-    def __add__(self, vector):
-        return myVector3(self.x + vector.x, self.y + vector.y, self.z + vector.z)
-
-    def __mul__(self, vector):
-        return myVector3(self.x * vector.x, self.y * vector.y, self.z * vector.z)
-
-    def dot(self, vector):
-        return (self.x * vector.x) + (self.y * vector.y) + (self.z * vector.z)
-
-    def cross(self, vector):
-        return myVector3(self.y*vector.z - self.z*vector.y, self.z*vector.x - self.x*vector.z, self.x*vector.y - self.y*vector.x)
-
-    def mag(self):
-        return math.sqrt(self.x**2 + self.y**2 + self.z**2)
-
-    def angle(self, vector):
-        return math.acos(self.dot(vector) / (self.mag() * vector.mag()))
+from utility.myVec3 import *
 
 
 class Obj:
+    # TODO clean up class/improve
     def __init__(self):
-        self.pos = myVector3(0, 0, 0)
-        self.velocity = myVector3(0, 0, 0)
-        self.rotation = myVector3(0, 0, 0)
-        self.rvel = myVector3(0, 0, 0)
+        self.pos = myVec3(0, 0, 0)
+        self.velocity = myVec3(0, 0, 0)
+        self.rotation = myVec3(0, 0, 0)
+        self.rvel = myVec3(0, 0, 0)
 
-        self.lpos = myVector3(0, 0, 0)
+        self.lpos = myVec3(0, 0, 0)
 
         self.isBall = False
 
 
-def rotator_to_matrix(obj):
-    r = obj.rotation
-    CR = math.cos(r.z)
-    SR = math.sin(r.z)
-    CP = math.cos(r.x)
-    SP = math.sin(r.x)
-    CY = math.cos(r.y)
-    SY = math.sin(r.y)
-
-    matrix = list()
-    matrix.append(myVector3(CP*CY, CP*SY, SP))
-    matrix.append(myVector3(CY*SP*SR - CR*SY, SY*SP*SR + CR*CY, -CP*SR))
-    matrix.append(myVector3(-CR*CY*SP - SR*SY, -CR*SY*SP + SR*CY, CP*CR))
-
-    return matrix
-
+# todo move to orinetation file
 # TODO fix this ...
 def to_local(our_obj, target_pos):
     x = (target_pos - our_obj.pos) * our_obj.matrix[0]
@@ -66,7 +26,7 @@ def to_local(our_obj, target_pos):
 
 
 def vector_to_local(matrix, vector):
-    return myVector3(vector.x*matrix[0].x + vector.y*matrix[1].x + vector.z*matrix[2].x,
+    return myVec3(vector.x*matrix[0].x + vector.y*matrix[1].x + vector.z*matrix[2].x,
                      vector.x*matrix[0].y + vector.y*matrix[1].y + vector.z*matrix[2].y,
                      vector.x*matrix[0].z + vector.y*matrix[1].z + vector.z*matrix[2].z)
 
@@ -106,10 +66,10 @@ def aim_to_vector(local_matrix, target_vector):  #TODO only implement pitch for 
 
     local_target = vector_to_local(local_matrix, target_vector)
     # yaw component, removing z-axis
-    yaw_angle = myVector3(local_matrix[0].x, local_matrix[0].y, 0).angle(myVector3(local_target.x, local_target.y, 0))
+    yaw_angle = myVec3(local_matrix[0].x, local_matrix[0].y, 0).angle(myVector3(local_target.x, local_target.y, 0))
 
     # pitch component, removing y-axis
-    pitch_angle = myVector3(local_matrix[0].x, 0, local_matrix[0].z).angle(myVector3(local_target.x, 0, local_target.z))
+    pitch_angle = myVec3(local_matrix[0].x, 0, local_matrix[0].z).angle(myVector3(local_target.x, 0, local_target.z))
 
     # yaw
     yaw = (yaw_kp * angle_error) + (yaw_kd * (angle_error - aim_to_vector.prev_yaw_error))
