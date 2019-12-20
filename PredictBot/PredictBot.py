@@ -10,7 +10,7 @@ from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
 from rlbot.utils.structures.game_data_struct import GameTickPacket
 
 from utility.util import *
-from utility.predict import *
+from utility.prediction import *
 
 
 class PredictBot(BaseAgent):

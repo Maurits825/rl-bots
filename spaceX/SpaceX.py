@@ -3,7 +3,7 @@ from rlbot.utils.structures.game_data_struct import GameTickPacket
 import math
 import time
 from utility.util import *
-from utility.predict import *
+from utility.prediction import *
 from rlbot.utils.game_state_util import GameState, CarState, Rotator, Physics
 from rlbot.utils.game_state_util import Vector3 as V3
 from enum import Enum
