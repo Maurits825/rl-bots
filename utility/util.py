@@ -16,6 +16,46 @@ class Obj:
         self.isBall = False
 
 
+def pre_process(packet, index):
+
+    ret_obj = Obj()
+
+    if index == -1:
+        ret_obj.pos.x = packet.game_ball.physics.location.x
+        ret_obj.pos.y = packet.game_ball.physics.location.y
+        ret_obj.pos.z = packet.game_ball.physics.location.z
+
+        ret_obj.velocity.x = packet.game_ball.physics.velocity.x
+        ret_obj.velocity.y = packet.game_ball.physics.velocity.y
+        ret_obj.velocity.z = packet.game_ball.physics.velocity.z
+
+        ret_obj.rotation.x = packet.game_ball.physics.rotation.pitch
+        ret_obj.rotation.y = packet.game_ball.physics.rotation.yaw
+        ret_obj.rotation.z = packet.game_ball.physics.rotation.roll
+
+        ret_obj.rvel.x = packet.game_ball.physics.angular_velocity.x
+        ret_obj.rvel.y = packet.game_ball.physics.angular_velocity.y
+        ret_obj.rvel.z = packet.game_ball.physics.angular_velocity.z
+    else:
+        ret_obj.pos.x = packet.game_cars[index].physics.location.x
+        ret_obj.pos.y = packet.game_cars[index].physics.location.y
+        ret_obj.pos.z = packet.game_cars[index].physics.location.z
+
+        ret_obj.velocity.x = packet.game_cars[index].physics.velocity.x
+        ret_obj.velocity.y = packet.game_cars[index].physics.velocity.y
+        ret_obj.velocity.z = packet.game_cars[index].physics.velocity.z
+
+        ret_obj.rotation.x = packet.game_cars[index].physics.rotation.pitch
+        ret_obj.rotation.y = packet.game_cars[index].physics.rotation.yaw
+        ret_obj.rotation.z = packet.game_cars[index].physics.rotation.roll
+
+        ret_obj.rvel.x = packet.game_cars[index].physics.angular_velocity.x
+        ret_obj.rvel.y = packet.game_cars[index].physics.angular_velocity.y
+        ret_obj.rvel.z = packet.game_cars[index].physics.angular_velocity.z
+
+    return ret_obj
+
+
 # todo move to orinetation file
 # TODO fix this ...
 def to_local(our_obj, target_pos):

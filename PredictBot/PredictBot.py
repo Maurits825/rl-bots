@@ -20,7 +20,6 @@ class PredictBot(BaseAgent):
         self.controller_state = SimpleControllerState()
         self.ball = Obj()
         self.me = Obj()
-        self.get_ball_prediction_struct()
 
     def get_output(self, packet: GameTickPacket) -> SimpleControllerState:
         # preprocess game data variables

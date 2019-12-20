@@ -1,9 +1,10 @@
 import math
 
-G = -628
-DRAG = -(3/100)
+# ref: https://github.com/RLBot/RLBot/wiki/Useful-Game-Values
+G = -650
+DRAG = -(3/100) #todo ?
 BALL_RADIUS = 92.75
-CAR_HEIGHT = 16.5
+CAR_HEIGHT = 17.01 # octane
 BOOST_ACC = 430 #TODO fix this
 
 
@@ -21,7 +22,7 @@ def time_to_ground(obj):
     if root < 0:
         return 0
     else:
-        return (-u-math.sqrt(root))/G
+        return (-u - math.sqrt(root)) / G
 
 
 def pos_at_time(obj, t):  # TODO for bounce, make the velocity arguments?
