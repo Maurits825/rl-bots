@@ -14,14 +14,16 @@ class MyVec3:
     def __add__(self, vector):
         return MyVec3(self.x + vector.x, self.y + vector.y, self.z + vector.z)
 
-    def __mul__(self, vector):
-        return MyVec3(self.x * vector.x, self.y * vector.y, self.z * vector.z)
+    def __mul__(self, scalar):
+        return MyVec3(self.x * scalar, self.y * scalar, self.z * scalar)
 
     def dot(self, vector):
         return (self.x * vector.x) + (self.y * vector.y) + (self.z * vector.z)
 
     def cross(self, vector):
-        return MyVec3(self.y*vector.z - self.z*vector.y, self.z*vector.x - self.x*vector.z, self.x*vector.y - self.y*vector.x)
+        return MyVec3(self.y*vector.z - self.z*vector.y,
+                      self.z*vector.x - self.x*vector.z,
+                      self.x*vector.y - self.y*vector.x)
 
     def mag(self):
         return math.sqrt(self.x**2 + self.y**2 + self.z**2)
