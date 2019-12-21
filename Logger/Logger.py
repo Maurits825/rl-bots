@@ -34,6 +34,7 @@ class PredictBot(BaseAgent):
 
         self.velocity = []
         self.position = []
+        self.angular = []
 
         self.last_time = 0
         self.timeout = 5
@@ -76,6 +77,7 @@ class PredictBot(BaseAgent):
             if (time.time() - self.log_start) < self.log_timer:
                 self.velocity.append(self.ball.velocity)
                 self.position.append(self.ball.pos)
+                self.angular.append(self.ball.rvel)
             else:
                 self.logger_state = Logger.saving
 
@@ -83,6 +85,7 @@ class PredictBot(BaseAgent):
             list_size = len(self.velocity)
             vel = np.zeros((list_size, 3))
             pos = np.zeros((list_size, 3))
+            ang = np.zeros((list_size, 3))
 
             for i in range(list_size):
                 vel[i, 0] = self.velocity[i].x
@@ -93,9 +96,14 @@ class PredictBot(BaseAgent):
                 pos[i, 1] = self.position[i].y
                 pos[i, 2] = self.position[i].z
 
+                ang[i, 0] = self.angular[i].x
+                ang[i, 1] = self.angular[i].y
+                ang[i, 2] = self.angular[i].z
+
             # TODO hard-coded dir path
             np.savetxt('./rl-bots/Logger/velocity.csv', vel, delimiter=',', fmt='%f')
             np.savetxt('./rl-bots/Logger/position.csv', pos, delimiter=',', fmt='%f')
+            np.savetxt('./rl-bots/Logger/angular.csv', ang, delimiter=',', fmt='%f')
 
             self.logger_state = Logger.idle
 
