@@ -6,12 +6,12 @@ from utility.myVec3 import *
 class Obj:
     # TODO clean up class/improve
     def __init__(self):
-        self.pos = myVec3(0, 0, 0)
-        self.velocity = myVec3(0, 0, 0)
-        self.rotation = myVec3(0, 0, 0)
-        self.rvel = myVec3(0, 0, 0)
+        self.pos = MyVec3(0, 0, 0)
+        self.velocity = MyVec3(0, 0, 0)
+        self.rotation = MyVec3(0, 0, 0)
+        self.rvel = MyVec3(0, 0, 0)
 
-        self.lpos = myVec3(0, 0, 0)
+        self.lpos = MyVec3(0, 0, 0)
 
         self.isBall = False
 
@@ -66,7 +66,7 @@ def to_local(our_obj, target_pos):
 
 
 def vector_to_local(matrix, vector):
-    return myVec3(vector.x*matrix[0].x + vector.y*matrix[1].x + vector.z*matrix[2].x,
+    return MyVec3(vector.x*matrix[0].x + vector.y*matrix[1].x + vector.z*matrix[2].x,
                      vector.x*matrix[0].y + vector.y*matrix[1].y + vector.z*matrix[2].y,
                      vector.x*matrix[0].z + vector.y*matrix[1].z + vector.z*matrix[2].z)
 
@@ -106,10 +106,10 @@ def aim_to_vector(local_matrix, target_vector):  #TODO only implement pitch for 
 
     local_target = vector_to_local(local_matrix, target_vector)
     # yaw component, removing z-axis
-    yaw_angle = myVec3(local_matrix[0].x, local_matrix[0].y, 0).angle(myVector3(local_target.x, local_target.y, 0))
+    yaw_angle = MyVec3(local_matrix[0].x, local_matrix[0].y, 0).angle(myVector3(local_target.x, local_target.y, 0))
 
     # pitch component, removing y-axis
-    pitch_angle = myVec3(local_matrix[0].x, 0, local_matrix[0].z).angle(myVector3(local_target.x, 0, local_target.z))
+    pitch_angle = MyVec3(local_matrix[0].x, 0, local_matrix[0].z).angle(myVector3(local_target.x, 0, local_target.z))
 
     # yaw
     yaw = (yaw_kp * angle_error) + (yaw_kd * (angle_error - aim_to_vector.prev_yaw_error))
