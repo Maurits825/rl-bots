@@ -39,7 +39,7 @@ class PredictBot(BaseAgent):
         self.last_time = 0
         self.timeout = 5
 
-        self.log_timer = 5
+        self.log_timer = 10
         self.log_start = 0
 
     def get_output(self, packet: GameTickPacket) -> SimpleControllerState:
@@ -64,9 +64,9 @@ class PredictBot(BaseAgent):
             pass
 
         elif self.logger_state is Logger.setup:
-            ball_state = BallState(Physics(location=Vector3(2000, -5100, 100),
-                                           velocity=Vector3(0, 2500, 1500),
-                                           angular_velocity=Vector3(0, 0, 0)))
+            ball_state = BallState(Physics(location=Vector3(2500, -4500, 100),
+                                           velocity=Vector3(0, 1000, 1500),
+                                           angular_velocity=Vector3(10, -10, -10)))
             game_state = GameState(ball=ball_state)
             self.set_game_state(game_state)
             self.logger_state = Logger.logging
@@ -82,6 +82,7 @@ class PredictBot(BaseAgent):
                 self.logger_state = Logger.saving
 
         elif self.logger_state is Logger.saving:
+            print('Saving!')
             list_size = len(self.velocity)
             vel = np.zeros((list_size, 3))
             pos = np.zeros((list_size, 3))
