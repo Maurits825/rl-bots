@@ -17,6 +17,13 @@ class MyVec3:
     def __mul__(self, scalar):
         return MyVec3(self.x * scalar, self.y * scalar, self.z * scalar)
 
+    def __rmul__(self, scalar):
+        return self * scalar
+
+    def __truediv__(self, scalar):
+        scalar = 1 / float(scalar)
+        return self * scalar
+
     def dot(self, vector):
         return (self.x * vector.x) + (self.y * vector.y) + (self.z * vector.z)
 
@@ -27,6 +34,12 @@ class MyVec3:
 
     def mag(self):
         return math.sqrt(self.x**2 + self.y**2 + self.z**2)
+
+    def normalized(self):
+        return self / self.mag()
+
+    def rescale(self, new_mag):
+        return new_mag * self.normalized()
 
     def angle(self, vector):
         return math.acos(self.dot(vector) / (self.mag() * vector.mag()))
