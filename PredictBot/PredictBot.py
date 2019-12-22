@@ -3,11 +3,12 @@ import time
 import sys
 import os
 
-# in order to access utility folder
-sys.path.insert(1, os.path.join(sys.path[0], '..'))
-
 from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
 from rlbot.utils.structures.game_data_struct import GameTickPacket
+from rlbot.utils.game_state_util import GameState, BallState, CarState, Physics, Vector3, Rotator, GameInfoState
+
+# in order to access utility folder
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
 
 from utility.util import *
 from utility.prediction import *
@@ -21,63 +22,42 @@ class PredictBot(BaseAgent):
         self.ball = Obj()
         self.me = Obj()
 
+        self.last_time = 0
+        self.timeout = 20
+        self.shoot_enabled = False
+
     def get_output(self, packet: GameTickPacket) -> SimpleControllerState:
-        # preprocess game data variables
-        self.preprocess(packet)
+        # pre-process ball
+        self.ball = pre_process(packet, -1)
+
+        if self.shoot_enabled and packet.game_cars[1].jumped and time.time() > (self.last_time + self.timeout):
+            self.last_time = time.time()
+            self.shoot_ball()
 
         # render stuff
-        t = time_to_ground(self.ball)
-        self.renderer.begin_rendering()
         self.draw_curve(self.ball)
-        self.renderer.end_rendering()
         return self.controller_state
 
-    def preprocess(self, game):  # TODO move to utils?
-        index = 0
-        self.me.pos.x = game.game_cars[index].physics.location.x
-        self.me.pos.y = game.game_cars[index].physics.location.y
-        self.me.pos.z = game.game_cars[index].physics.location.z
-
-        self.me.velocity.x = game.game_cars[index].physics.velocity.x
-        self.me.velocity.y = game.game_cars[index].physics.velocity.y
-        self.me.velocity.z = game.game_cars[index].physics.velocity.z
-
-        self.me.rotation.x = game.game_cars[index].physics.rotation.pitch
-        self.me.rotation.y = game.game_cars[index].physics.rotation.yaw
-        self.me.rotation.z = game.game_cars[index].physics.rotation.roll
-
-        self.me.rvel.x = game.game_cars[index].physics.angular_velocity.x
-        self.me.rvel.y = game.game_cars[index].physics.angular_velocity.y
-        self.me.rvel.z = game.game_cars[index].physics.angular_velocity.z
-
-        self.ball.pos.x = game.game_ball.physics.location.x
-        self.ball.pos.y = game.game_ball.physics.location.y
-        self.ball.pos.z = game.game_ball.physics.location.z
-
-        self.ball.velocity.x = game.game_ball.physics.velocity.x
-        self.ball.velocity.y = game.game_ball.physics.velocity.y
-        self.ball.velocity.z = game.game_ball.physics.velocity.z
-
-        self.ball.rotation.x = game.game_ball.physics.rotation.pitch
-        self.ball.rotation.y = game.game_ball.physics.rotation.yaw
-        self.ball.rotation.z = game.game_ball.physics.rotation.roll
-
-        self.ball.rvel.x = game.game_ball.physics.angular_velocity.x
-        self.ball.rvel.y = game.game_ball.physics.angular_velocity.y
-        self.ball.rvel.z = game.game_ball.physics.angular_velocity.z
-
-        self.ball.isBall = True
+    def shoot_ball(self):
+        ball_state = BallState(Physics(location=Vector3(2500, -4500, 100),
+                                       velocity=Vector3(0, 1000, 1500),
+                                       angular_velocity=Vector3(0, -10, 0)))
+        game_state = GameState(ball=ball_state)
+        self.set_game_state(game_state)
 
     def draw_curve(self, obj):
-        t = time_to_ground(obj)
-        ground_pos = pos_at_time(obj, t)
-        self.renderer.draw_rect_3d(ground_pos, 20, 20, True,
-                                   self.renderer.red())
+        initial_physics = Physics(location=obj.pos, velocity=obj.velocity, angular_velocity=obj.rvel)  # TODO better way?
+        times, positions, velocitys, angulars = get_bounces(initial_physics, 5, 30, 'drag')
 
-        samples = 15
-        prev_pos = pos_at_time(obj, 0)
-        for i in range(1, samples+1):
-            j = t*i/samples
-            pos = pos_at_time(obj, j)
-            self.renderer.draw_line_3d(prev_pos, pos, self.renderer.red())
-            prev_pos = pos
+        self.renderer.begin_rendering()
+        list_size = len(positions)
+        for i in range(list_size):
+            # skip first
+            if i == 0:
+                pass
+            else:
+                prev_pos = [positions[i - 1].x, positions[i - 1].y, positions[i - 1].z]
+                curr_pos = [positions[i].x, positions[i].y, positions[i].z]
+                self.renderer.draw_line_3d(prev_pos, curr_pos, self.renderer.red())
+
+        self.renderer.end_rendering()

@@ -131,7 +131,10 @@ def update_physics_after_bounce(physics: Physics, time_ground, ground_pos, physi
     vel_spin = BALL_RADIUS * normal.cross(physics.angular_velocity)  # spin velocity is perp to normal and axis of ang v
     vel_slip = vel_para + vel_spin
 
-    ratio = vel_perp.mag() / vel_slip.mag()
+    try:
+        ratio = vel_perp.mag() / vel_slip.mag()
+    except ZeroDivisionError:
+        ratio = 0
 
     delta_vel_perp = - (1 + C_R) * vel_perp
     delta_vel_para = -1 * (min(1, Y * ratio) * mu * vel_slip)
@@ -142,7 +145,12 @@ def update_physics_after_bounce(physics: Physics, time_ground, ground_pos, physi
     ret_physics.location = ground_pos
     ret_physics.velocity = ground_velocity + delta_vel_perp + delta_vel_para
     new_angular = physics.angular_velocity + (F * BALL_RADIUS * delta_vel_para.cross(normal))
-    ret_physics.angular_velocity = new_angular.rescale(omega_max)
+
+    # catch angular being zero
+    try:
+        ret_physics.angular_velocity = new_angular.rescale(omega_max)
+    except ZeroDivisionError:
+        ret_physics.angular_velocity = new_angular
 
     #ret_physics.angular_velocity = physics.angular_velocity + ((BALL_RADIUS / moment_of_inertia) * delta_vel_para_m.cross(normal))
 
@@ -173,8 +181,19 @@ def get_bounces(physics: Physics, bounce_num=5, base_samples=15, physics_flag='n
         else:
             return
 
-        samples = int(base_samples * time_ground)
-        time_interval = (time_ground / samples)
+        # if ball on ground TODO fix this?
+        try:
+            samples = int(base_samples * time_ground)
+        except ValueError:
+            time_ground = 1
+            samples = int(base_samples * time_ground)
+
+        try:
+            time_interval = (time_ground / samples)
+        except RuntimeWarning:
+            time_ground = 1
+            samples = FPS
+            time_interval = (time_ground / samples)
         t = 0
 
         current_pos = None

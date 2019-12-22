@@ -65,8 +65,8 @@ class PredictBot(BaseAgent):
 
         elif self.logger_state is Logger.setup:
             ball_state = BallState(Physics(location=Vector3(2500, -4500, 100),
-                                           velocity=Vector3(0, 1000, 1500),
-                                           angular_velocity=Vector3(10, -10, -10)))
+                                           velocity=Vector3(0, 0, 500),
+                                           angular_velocity=Vector3(0, 0, 0)))
             game_state = GameState(ball=ball_state)
             self.set_game_state(game_state)
             self.logger_state = Logger.logging
