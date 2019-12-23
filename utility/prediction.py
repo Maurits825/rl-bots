@@ -29,6 +29,9 @@ BALL_RADIUS = 92.75
 CAR_HEIGHT = 17.01  # octane
 BOOST_ACC = 430 #TODO fix this
 FPS = 60
+ROOF = 2044
+SIDE_WALL = 4096
+BACK_WALL = 5120
 
 # TODO rename these?
 A = G/DRAG
@@ -108,27 +111,26 @@ def get_vel_at_time(t, initial_velocity):
 
 
 # ref: https://samuelpmish.github.io/notes/RocketLeague/ball_bouncing/
-def update_physics_after_bounce(physics: Physics, time_ground, ground_pos, physics_flag):
+def update_physics_after_bounce(physics: Physics, time_ground, ground_pos, physics_flag, normal):
     ret_physics = Physics()
 
-    ground_velocity = None
+    collision_vel = None
 
     if physics_flag == 'no_drag':
-        ground_velocity = get_vel_at_time(time_ground, physics.velocity)
+        collision_vel = get_vel_at_time(time_ground, physics.velocity)
 
     elif physics_flag == 'drag':
         frame = time_ground * FPS
-        ground_velocity = d_get_vel(frame, physics.velocity)
+        collision_vel = d_get_vel(frame, physics.velocity)
 
     elif physics_flag == 'engine_sim':
-        ground_velocity = physics.velocity
+        collision_vel = physics.velocity
 
     else:
         return
 
-    normal = MyVec3(0, 0, 1)  # TODO assume ground bounces for now
-    vel_perp = ground_velocity.dot(normal) * normal  # velocity projection on normal vector
-    vel_para = ground_velocity - vel_perp  # vector subtraction to get parallel vector
+    vel_perp = collision_vel.dot(normal) * normal  # velocity projection on normal vector
+    vel_para = collision_vel - vel_perp  # vector subtraction to get parallel vector
     vel_spin = BALL_RADIUS * normal.cross(physics.angular_velocity)  # spin velocity is perp to normal and axis of ang v
     vel_slip = vel_para + vel_spin
 
@@ -144,13 +146,13 @@ def update_physics_after_bounce(physics: Physics, time_ground, ground_pos, physi
     delta_vel_para_m = (-mass * (min(1, Y * ratio) * mu * vel_slip)) * (1/FPS)
 
     ret_physics.location = ground_pos
-    ret_physics.velocity = ground_velocity + delta_vel_perp + delta_vel_para
+    ret_physics.velocity = collision_vel + delta_vel_perp + delta_vel_para
     new_angular = physics.angular_velocity + (F * BALL_RADIUS * delta_vel_para.cross(normal))
 
     # catch angular being zero
-    try:
+    if new_angular.mag() > omega_max:
         ret_physics.angular_velocity = new_angular.rescale(omega_max)
-    except ZeroDivisionError:
+    else:
         ret_physics.angular_velocity = new_angular
 
     #ret_physics.angular_velocity = physics.angular_velocity + ((BALL_RADIUS / moment_of_inertia) * delta_vel_para_m.cross(normal))
@@ -167,7 +169,10 @@ def get_bounces(physics: Physics, bounce_num=5, base_samples=15, physics_flag='n
     current_physics = copy.deepcopy(physics)
     initial_velocity = current_physics.velocity
     initial_position = current_physics.location
+
+    normal = MyVec3(0, 0, 1)  # TODO assume ground only bounces
     last_time = 0
+
     for b in range(bounce_num):
         time_ground = 0
         if physics_flag == 'no_drag':
@@ -226,7 +231,7 @@ def get_bounces(physics: Physics, bounce_num=5, base_samples=15, physics_flag='n
             angulars.append(current_ang)
             times.append(last_time + t)
 
-        new_physics = update_physics_after_bounce(current_physics, time_ground, current_pos, physics_flag)
+        new_physics = update_physics_after_bounce(current_physics, time_ground, current_pos, physics_flag, normal)
 
         initial_velocity = new_physics.velocity
         initial_position = new_physics.location
@@ -250,6 +255,11 @@ def physics_engine_sim(physics: Physics, total_time=10):
     total_frames = int(total_time * FPS)
     dt = 1 / FPS
 
+    is_collision = False
+
+    collision_frame = 0
+    collision_normal = MyVec3(0, 0, 1)
+
     for f in range(1, total_frames):
 
         velocity.z = velocity.z * (1 - DRAG)**dt + (G * dt)
@@ -262,45 +272,103 @@ def physics_engine_sim(physics: Physics, total_time=10):
 
         dt = 1 / FPS
 
-        # TODO: IMPORTANT --> need way to handle ball rolling, otherwise if below get called every frame...
+        # TODO simplify code below?
+        # TODO: IMPORTANT --> need way to handle ball rolling, otherwise if statement below gets called every frame...
+        # TODO: related to above, when ball rolling, the velocity is =/= 0 but pos doesnt change
         # collision check, first just ground, check if current frame is valid/not colliding
         if (position.z - BALL_RADIUS) < 0:
-            x1 = 0
+            collision_normal = MyVec3(0, 0, 1)
+            is_collision = True
+
             y1 = positions[f - 1].z - BALL_RADIUS
-            x2 = 1
             y2 = position.z - BALL_RADIUS
-            m = y2 - y1  # slope denomiator always 1, (x2 - x1) = 1
-            frame = x1 - (y1 / m)  # frame where ball collides
+            m = y2 - y1  # slope denominator always 1, (x2 - x1) = 1
+            collision_frame = - (y1 / m)  # frame where ball collides
 
+        # roof check
+        elif (position.z + BALL_RADIUS) > ROOF:
+            collision_normal = MyVec3(0, 0, -1)
+            is_collision = True
+
+            y1 = positions[f - 1].z + BALL_RADIUS
+            y2 = position.z + BALL_RADIUS
+            m = y2 - y1  # slope denominator always 1, (x2 - x1) = 1
+            collision_frame = - ((ROOF - y1) / m)  # frame where ball collides
+
+        #left wall check
+        elif (position.x + BALL_RADIUS) > SIDE_WALL:
+            collision_normal = MyVec3(-1, 0, 0)
+            is_collision = True
+
+            y1 = positions[f - 1].x + BALL_RADIUS
+            y2 = position.x + BALL_RADIUS
+            m = y2 - y1  # slope denominator always 1, (x2 - x1) = 1
+            collision_frame = - ((SIDE_WALL - y1) / m)  # frame where ball collides
+
+        #right wall check
+        elif (position.x - BALL_RADIUS) < -SIDE_WALL:
+            collision_normal = MyVec3(1, 0, 0)
+            is_collision = True
+
+            y1 = positions[f - 1].x - BALL_RADIUS
+            y2 = position.x - BALL_RADIUS
+            m = y2 - y1  # slope denominator always 1, (x2 - x1) = 1
+            collision_frame = - ((-SIDE_WALL - y1) / m)  # frame where ball collides
+
+        #orange wall check
+        elif (position.y + BALL_RADIUS) > BACK_WALL:
+            collision_normal = MyVec3(0, -1, 0)
+            is_collision = True
+
+            y1 = positions[f - 1].y + BALL_RADIUS
+            y2 = position.y + BALL_RADIUS
+            m = y2 - y1  # slope denominator always 1, (x2 - x1) = 1
+            collision_frame = - ((BACK_WALL - y1) / m)  # frame where ball collides
+
+        #blue wall check
+        elif (position.y - BALL_RADIUS) < -BACK_WALL:
+            collision_normal = MyVec3(0, 1, 0)
+            is_collision = True
+
+            y1 = positions[f - 1].y - BALL_RADIUS
+            y2 = position.y - BALL_RADIUS
+            m = y2 - y1  # slope denominator always 1, (x2 - x1) = 1
+            collision_frame = - ((-BACK_WALL - y1) / m)  # frame where ball collides
+
+        else:
+            is_collision = False
+
+        if is_collision:
             # approximate linear behaviour, angular doesnt change
-            position.z = ((position.z - positions[f - 1].z) * frame) + positions[f - 1].z
-            position.x = ((position.x - positions[f - 1].x) * frame) + positions[f - 1].x
-            position.y = ((position.y - positions[f - 1].y) * frame) + positions[f - 1].y
+            position.z = ((position.z - positions[f - 1].z) * collision_frame) + positions[f - 1].z
+            position.x = ((position.x - positions[f - 1].x) * collision_frame) + positions[f - 1].x
+            position.y = ((position.y - positions[f - 1].y) * collision_frame) + positions[f - 1].y
 
-            velocity.z = ((velocity.z - velocitys[f - 1].z) * frame) + velocitys[f - 1].z
-            velocity.x = ((velocity.x - velocitys[f - 1].x) * frame) + velocitys[f - 1].x
-            velocity.y = ((velocity.y - velocitys[f - 1].y) * frame) + velocitys[f - 1].y
+            velocity.z = ((velocity.z - velocitys[f - 1].z) * collision_frame) + velocitys[f - 1].z
+            velocity.x = ((velocity.x - velocitys[f - 1].x) * collision_frame) + velocitys[f - 1].x
+            velocity.y = ((velocity.y - velocitys[f - 1].y) * collision_frame) + velocitys[f - 1].y
 
             # append these values instead of previously calculated values
             velocitys.append(velocity.copy())
             positions.append(position.copy())
             angulars.append(angular.copy())
-            times.append((f - 1 + frame) * dt)
+            times.append((f - 1 + collision_frame) * dt)
 
             # update current physics
             current_physics.velocity = velocity.copy()
             current_physics.angular_velocity = angular.copy()
             current_physics.location = position.copy()
+
             # time to ground argument isnt used for engine sim
-            new_physics = update_physics_after_bounce(current_physics, 0, position, 'engine_sim')
+            new_physics = update_physics_after_bounce(current_physics, 0, position, 'engine_sim', collision_normal)
 
             # update values with new physics for next frame
             velocity = new_physics.velocity
             position = new_physics.location
             angular = new_physics.angular_velocity
 
-            # update dt because next frame is a little longer than one frame
-            dt = (1 / FPS) + ((1 - frame) * dt)
+            # update dt because next frame is a little longer than one frame away
+            dt = (1 / FPS) + ((1 - collision_frame) * dt)
 
         else:
             # no collision, just append values

@@ -47,7 +47,8 @@ class PredictBot(BaseAgent):
 
     def draw_curve(self, obj):
         initial_physics = Physics(location=obj.pos, velocity=obj.velocity, angular_velocity=obj.rvel)  # TODO better way?
-        times, positions, velocitys, angulars = get_bounces(initial_physics, 5, 30, 'drag')
+        #times, positions, velocitys, angulars = get_bounces(initial_physics, 5, 30, 'drag')
+        times, positions, velocitys, angulars = physics_engine_sim(initial_physics, 5)
 
         self.renderer.begin_rendering()
         list_size = len(positions)
