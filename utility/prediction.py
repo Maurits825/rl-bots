@@ -1,6 +1,7 @@
 import math
 import os
 import sys
+import copy
 from utility.myVec3 import MyVec3
 
 try:
@@ -120,7 +121,7 @@ def update_physics_after_bounce(physics: Physics, time_ground, ground_pos, physi
         ground_velocity = d_get_vel(frame, physics.velocity)
 
     elif physics_flag == 'engine_sim':
-        pass
+        ground_velocity = physics.velocity
 
     else:
         return
@@ -163,7 +164,7 @@ def get_bounces(physics: Physics, bounce_num=5, base_samples=15, physics_flag='n
     angulars = []
     times = []
 
-    current_physics = physics
+    current_physics = copy.deepcopy(physics)
     initial_velocity = current_physics.velocity
     initial_position = current_physics.location
     last_time = 0
@@ -231,6 +232,82 @@ def get_bounces(physics: Physics, bounce_num=5, base_samples=15, physics_flag='n
         initial_position = new_physics.location
         current_physics = new_physics
         last_time = last_time + t
+
+    return times, positions, velocitys, angulars
+
+
+def physics_engine_sim(physics: Physics, total_time=10):
+    current_physics = copy.deepcopy(physics)
+    velocity = current_physics.velocity
+    position = current_physics.location
+    angular = current_physics.angular_velocity
+
+    velocitys = [velocity.copy()]
+    positions = [position.copy()]
+    angulars = [angular.copy()]
+    times = [0]
+
+    total_frames = int(total_time * FPS)
+    dt = 1 / FPS
+
+    for f in range(1, total_frames):
+
+        velocity.z = velocity.z * (1 - DRAG)**dt + (G * dt)
+        velocity.x = velocity.x * (1 - DRAG)**dt
+        velocity.y = velocity.y * (1 - DRAG)**dt
+
+        position.z = position.z + (velocity.z * dt)
+        position.x = position.x + (velocity.x * dt)
+        position.y = position.y + (velocity.y * dt)
+
+        dt = 1 / FPS
+
+        # TODO: IMPORTANT --> need way to handle ball rolling, otherwise if below get called every frame...
+        # collision check, first just ground, check if current frame is valid/not colliding
+        if (position.z - BALL_RADIUS) < 0:
+            x1 = 0
+            y1 = positions[f - 1].z - BALL_RADIUS
+            x2 = 1
+            y2 = position.z - BALL_RADIUS
+            m = y2 - y1  # slope denomiator always 1, (x2 - x1) = 1
+            frame = x1 - (y1 / m)  # frame where ball collides
+
+            # approximate linear behaviour, angular doesnt change
+            position.z = ((position.z - positions[f - 1].z) * frame) + positions[f - 1].z
+            position.x = ((position.x - positions[f - 1].x) * frame) + positions[f - 1].x
+            position.y = ((position.y - positions[f - 1].y) * frame) + positions[f - 1].y
+
+            velocity.z = ((velocity.z - velocitys[f - 1].z) * frame) + velocitys[f - 1].z
+            velocity.x = ((velocity.x - velocitys[f - 1].x) * frame) + velocitys[f - 1].x
+            velocity.y = ((velocity.y - velocitys[f - 1].y) * frame) + velocitys[f - 1].y
+
+            # append these values instead of previously calculated values
+            velocitys.append(velocity.copy())
+            positions.append(position.copy())
+            angulars.append(angular.copy())
+            times.append((f - 1 + frame) * dt)
+
+            # update current physics
+            current_physics.velocity = velocity.copy()
+            current_physics.angular_velocity = angular.copy()
+            current_physics.location = position.copy()
+            # time to ground argument isnt used for engine sim
+            new_physics = update_physics_after_bounce(current_physics, 0, position, 'engine_sim')
+
+            # update values with new physics for next frame
+            velocity = new_physics.velocity
+            position = new_physics.location
+            angular = new_physics.angular_velocity
+
+            # update dt because next frame is a little longer than one frame
+            dt = (1 / FPS) + ((1 - frame) * dt)
+
+        else:
+            # no collision, just append values
+            velocitys.append(velocity.copy())
+            positions.append(position.copy())
+            angulars.append(angular.copy())
+            times.append(f * dt)
 
     return times, positions, velocitys, angulars
 

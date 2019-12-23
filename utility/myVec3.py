@@ -24,6 +24,9 @@ class MyVec3:
         scalar = 1 / float(scalar)
         return self * scalar
 
+    def copy(self):
+        return MyVec3(self.x, self.y, self.z)
+
     def dot(self, vector):
         return (self.x * vector.x) + (self.y * vector.y) + (self.z * vector.z)
 
