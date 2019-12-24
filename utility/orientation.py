@@ -1,18 +1,34 @@
 import math
 
-#TODO improve, look at orientation class in testbot
-def rotator_to_matrix(obj):
-    r = obj.rotation
-    CR = math.cos(r.z)
-    SR = math.sin(r.z)
-    CP = math.cos(r.x)
-    SP = math.sin(r.x)
-    CY = math.cos(r.y)
-    SY = math.sin(r.y)
+from utility.util import *
 
-    matrix = list()
-    matrix.append(myVec3(CP*CY, CP*SY, SP))
-    matrix.append(myVec3(CY*SP*SR - CR*SY, SY*SP*SR + CR*CY, -CP*SR))
-    matrix.append(myVec3(-CR*CY*SP - SR*SY, -CR*SY*SP + SR*CY, CP*CR))
 
-    return matrix
+class Orientation:
+
+    def __init__(self, rotation):
+        self.yaw = float(rotation.yaw)
+        self.roll = float(rotation.roll)
+        self.pitch = float(rotation.pitch)
+
+        cr = math.cos(self.roll)
+        sr = math.sin(self.roll)
+        cp = math.cos(self.pitch)
+        sp = math.sin(self.pitch)
+        cy = math.cos(self.yaw)
+        sy = math.sin(self.yaw)
+
+        self.forward = MyVec3(cp * cy, cp * sy, sp)  # y axis
+        self.right = MyVec3(cy*sp*sr-cr*sy, sy*sp*sr+cr*cy, -cp*sr)  # -x axis
+        self.up = MyVec3(-cr*cy*sp-sr*sy, -cr*sy*sp+sr*cy, cp*cr)  # z axis
+
+
+def relative_location(center: MyVec3, ori: Orientation, target: MyVec3) -> MyVec3:
+    # the following code works with the idea of dot product being a projection
+    # first take the diff from the target and center
+    # that vector dot x,y,z axis is the projection of that vector on that axis
+    # in other words, it transforms the vector to the target vector coordinates
+
+    x = (target - center).dot(ori.forward)
+    y = (target - center).dot(ori.right)
+    z = (target - center).dot(ori.up)
+    return MyVec3(x, y, z)

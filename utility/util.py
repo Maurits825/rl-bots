@@ -55,22 +55,6 @@ def pre_process(packet, index):
 
     return ret_obj
 
-
-# todo move to orinetation file
-# TODO fix this ...
-def to_local(our_obj, target_pos):
-    x = (target_pos - our_obj.pos) * our_obj.matrix[0]
-    y = (target_pos - our_obj.pos) * our_obj.matrix[1]
-    z = (target_pos - our_obj.pos) * our_obj.matrix[2]
-    return [x, y, z]
-
-
-def vector_to_local(matrix, vector):
-    return MyVec3(vector.x*matrix[0].x + vector.y*matrix[1].x + vector.z*matrix[2].x,
-                     vector.x*matrix[0].y + vector.y*matrix[1].y + vector.z*matrix[2].y,
-                     vector.x*matrix[0].z + vector.y*matrix[1].z + vector.z*matrix[2].z)
-
-
 def aim_front(our_obj, target_pos):
     #local_target = to_local(our_obj, target_pos)
     #angle = math.atan2(local_target[0].y, local_target[0].x)

@@ -272,7 +272,7 @@ def physics_engine_sim(physics: Physics, total_time=10):
 
         dt = 1 / FPS
 
-        # TODO simplify code below?
+        # TODO simplify code below? make a function?
         # TODO: IMPORTANT --> need way to handle ball rolling, otherwise if statement below gets called every frame...
         # TODO: related to above, when ball rolling, the velocity is =/= 0 but pos doesnt change
         # collision check, first just ground, check if current frame is valid/not colliding
@@ -378,6 +378,70 @@ def physics_engine_sim(physics: Physics, total_time=10):
             times.append(f * dt)
 
     return times, positions, velocitys, angulars
+
+# TODO:
+def basic_collision_check(position):
+    if (position.z - BALL_RADIUS) < 0:
+        collision_normal = MyVec3(0, 0, 1)
+        is_collision = True
+
+        y1 = positions[f - 1].z - BALL_RADIUS
+        y2 = position.z - BALL_RADIUS
+        m = y2 - y1  # slope denominator always 1, (x2 - x1) = 1
+        collision_frame = - (y1 / m)  # frame where ball collides
+
+        # roof check
+    elif (position.z + BALL_RADIUS) > ROOF:
+        collision_normal = MyVec3(0, 0, -1)
+        is_collision = True
+
+        y1 = positions[f - 1].z + BALL_RADIUS
+        y2 = position.z + BALL_RADIUS
+        m = y2 - y1  # slope denominator always 1, (x2 - x1) = 1
+        collision_frame = - ((ROOF - y1) / m)  # frame where ball collides
+
+        # left wall check
+    elif (position.x + BALL_RADIUS) > SIDE_WALL:
+        collision_normal = MyVec3(-1, 0, 0)
+        is_collision = True
+
+        y1 = positions[f - 1].x + BALL_RADIUS
+        y2 = position.x + BALL_RADIUS
+        m = y2 - y1  # slope denominator always 1, (x2 - x1) = 1
+        collision_frame = - ((SIDE_WALL - y1) / m)  # frame where ball collides
+
+        # right wall check
+    elif (position.x - BALL_RADIUS) < -SIDE_WALL:
+        collision_normal = MyVec3(1, 0, 0)
+        is_collision = True
+
+        y1 = positions[f - 1].x - BALL_RADIUS
+        y2 = position.x - BALL_RADIUS
+        m = y2 - y1  # slope denominator always 1, (x2 - x1) = 1
+        collision_frame = - ((-SIDE_WALL - y1) / m)  # frame where ball collides
+
+        # orange wall check
+    elif (position.y + BALL_RADIUS) > BACK_WALL:
+        collision_normal = MyVec3(0, -1, 0)
+        is_collision = True
+
+        y1 = positions[f - 1].y + BALL_RADIUS
+        y2 = position.y + BALL_RADIUS
+        m = y2 - y1  # slope denominator always 1, (x2 - x1) = 1
+        collision_frame = - ((BACK_WALL - y1) / m)  # frame where ball collides
+
+        # blue wall check
+    elif (position.y - BALL_RADIUS) < -BACK_WALL:
+        collision_normal = MyVec3(0, 1, 0)
+        is_collision = True
+
+        y1 = positions[f - 1].y - BALL_RADIUS
+        y2 = position.y - BALL_RADIUS
+        m = y2 - y1  # slope denominator always 1, (x2 - x1) = 1
+        collision_frame = - ((-BACK_WALL - y1) / m)  # frame where ball collides
+
+    else:
+        is_collision = False
 
 
 def burn_time(obj, target_height): # TODO rename to like suicide burn
