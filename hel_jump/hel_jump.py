@@ -1,11 +1,16 @@
-from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
-from rlbot.utils.structures.game_data_struct import GameTickPacket
 import math
 import time
+import sys
+import os
+from enum import Enum
+
+from rlbot.agents.base_agent import BaseAgent, SimpleControllerState
+from rlbot.utils.structures.game_data_struct import GameTickPacket
+from rlbot.utils.game_state_util import GameState, BallState, CarState, Physics, Vector3, Rotator, GameInfoState
+
+# in order to access utility folder
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
 from utility.util import *
-from utility.prediction import *
-from rlbot.utils.game_state_util import GameState, CarState, Rotator, Physics
-from rlbot.utils.game_state_util import Vector3 as V3
 
 
 class HelJump(BaseAgent):
@@ -35,10 +40,11 @@ class HelJump(BaseAgent):
 
     def get_output(self, packet: GameTickPacket) -> SimpleControllerState:
         # preprocess game data variables
-        self.preprocess(packet)
+        self.me = pre_process(packet, self.index)
+        my_car = packet.game_cars[self.index]
 
         # hel_jump
-        if packet.game_cars[0].jumped and time.time() > self.t+self.timeout:
+        if packet.game_cars[1].jumped and time.time() > self.t+self.timeout:
             self.t = time.time()
             self.current_state = 'Reset'
 
@@ -46,53 +52,10 @@ class HelJump(BaseAgent):
 
         #render stuff
         self.renderer.begin_rendering()
-        self.renderer.draw_string_2d(0, 0, 5, 5, self.current_state,
-                                     self.renderer.black())
-        #str(packet.game_cars[self.index].double_jumped)
-        self.renderer.draw_string_2d(0, 100, 5, 5, str(packet.game_cars[self.index].double_jumped),
-                                     self.renderer.black())
-
+        self.renderer.draw_string_3d(my_car.physics.location, 2, 2, str(self.current_state), self.renderer.white())
         self.renderer.end_rendering()
 
         return self.controller
-
-    def preprocess(self, game):
-        index = self.index
-        self.me.pos.x = game.game_cars[index].physics.location.x
-        self.me.pos.y = game.game_cars[index].physics.location.y
-        self.me.pos.z = game.game_cars[index].physics.location.z
-
-        self.me.velocity.x = game.game_cars[index].physics.velocity.x
-        self.me.velocity.y = game.game_cars[index].physics.velocity.y
-        self.me.velocity.z = game.game_cars[index].physics.velocity.z
-
-        self.me.rotation.x = game.game_cars[index].physics.rotation.pitch
-        self.me.rotation.y = game.game_cars[index].physics.rotation.yaw
-        self.me.rotation.z = game.game_cars[index].physics.rotation.roll
-
-        self.me.rvel.x = game.game_cars[index].physics.angular_velocity.x
-        self.me.rvel.y = game.game_cars[index].physics.angular_velocity.y
-        self.me.rvel.z = game.game_cars[index].physics.angular_velocity.z
-
-        self.ball.pos.x = game.game_ball.physics.location.x
-        self.ball.pos.y = game.game_ball.physics.location.y
-        self.ball.pos.z = game.game_ball.physics.location.z
-
-        self.ball.velocity.x = game.game_ball.physics.velocity.x
-        self.ball.velocity.y = game.game_ball.physics.velocity.y
-        self.ball.velocity.z = game.game_ball.physics.velocity.z
-
-        self.ball.rotation.x = game.game_ball.physics.rotation.pitch
-        self.ball.rotation.y = game.game_ball.physics.rotation.yaw
-        self.ball.rotation.z = game.game_ball.physics.rotation.roll
-
-        self.ball.rvel.x = game.game_ball.physics.angular_velocity.x
-        self.ball.rvel.y = game.game_ball.physics.angular_velocity.y
-        self.ball.rvel.z = game.game_ball.physics.angular_velocity.z
-
-        self.me.matrix = rotator_to_matrix(self.me)
-
-        self.ball.isBall = True
 
     def hel_jump(self):
         if self.current_state == 'Jump':
@@ -148,10 +111,10 @@ class HelJump(BaseAgent):
             self.controller.handbrake = 0
             self.controller.pitch = 0
             self.controller.boost = 0
-            car_state = CarState(physics=Physics(velocity=V3(0, 0, 0),
+            car_state = CarState(physics=Physics(velocity=Vector3(0, 0, 0),
                                                  rotation=Rotator(0, 0, 0),
-                                                 angular_velocity=V3(0, 0, 0),
-                                                 location=V3(0, 0, 16.6)))
+                                                 angular_velocity=Vector3(0, 0, 0),
+                                                 location=Vector3(0, 0, 16.6)))
             game_state = GameState(cars={self.index: car_state})
             self.set_game_state(game_state)
 
